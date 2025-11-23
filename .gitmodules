@@ -1,0 +1,4 @@
+[submodule "third_party/deep_gemm"]
+	path = third_party/deep_gemm
+	url = https://github.com/sgl-project/DeepGEMM
+	branch = f4adba8a6695e635b0106ce3dae3202016ad0ee5
