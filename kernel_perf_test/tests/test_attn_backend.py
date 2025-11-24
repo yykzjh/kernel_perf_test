@@ -1,5 +1,5 @@
-from functools import partial
 import os
+import math
 import random
 from types import SimpleNamespace
 
@@ -64,6 +64,9 @@ def test_main(args: SimpleNamespace):
         args.torch_dtype = torch.bfloat16
     else:
         raise ValueError(f"Unsupported torch.dtype: {args.torch_dtype}")
+    # Check num_pages
+    if args.num_pages < args.batch_size * math.ceil(args.seq_len / args.page_size):
+        args.num_pages = args.batch_size * math.ceil(args.seq_len / args.page_size)
     # Create attention backend
     attn_backend = TRTLLMMHAAttnBackend(
         num_pages=args.num_pages,

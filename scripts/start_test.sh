@@ -1,14 +1,14 @@
 #!/bin/bash
 
 export PYTHONPATH="./"
-export FLASHINFER_CUDA_ARCH_LIST="9.0"
+export FLASHINFER_CUDA_ARCH_LIST="10.0"
 export CUDA_VISIBLE_DEVICES="0"
 
 export NUM_PAGES=1024000
-export PAGE_SIZE=16
+export PAGE_SIZE=32
 export HEAD_DIM=128
 export BATCH_SIZE=32
-export SEQ_LEN=4096
+export SEQ_LEN=2048
 export MAX_SEQ_LEN=8196
 export NUM_TP_Q_HEADS=12
 export NUM_TP_K_HEADS=1

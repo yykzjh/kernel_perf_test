@@ -1,4 +1,4 @@
-import random
+import math
 from typing import Optional
 
 import torch
@@ -55,8 +55,8 @@ class TRTLLMMHAAttnBackend(nn.Module):
         self.torch_dtype = torch_dtype
         # Check parameters
         assert self.seq_len <= self.max_seq_len, "Sequence length must be less than or equal to maximum sequence length"
-        assert (
-            self.num_pages >= self.batch_size * self.seq_len
+        assert self.num_pages >= self.batch_size * math.ceil(
+            self.seq_len / self.page_size
         ), "Number of pages must be greater than or equal to the product of batch size and sequence length"
         # Generate query tensor
         self.q = torch.randn(
