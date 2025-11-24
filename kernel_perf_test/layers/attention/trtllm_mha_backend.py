@@ -125,6 +125,5 @@ class TRTLLMMHAAttnBackend(nn.Module):
             window_left=self.sliding_window_size,
             sinks=None,
             out_dtype=self.torch_dtype,
-            backend="auto",
         )
         return o.view(-1, self.num_tp_q_heads * self.head_dim)

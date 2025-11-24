@@ -6,7 +6,6 @@ git submodule update --init --recursive
 
 # install dependencies
 uv sync
-source ./.venv/bin/activate
 
 pushd third_party
 
