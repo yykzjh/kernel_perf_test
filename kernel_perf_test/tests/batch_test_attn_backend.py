@@ -2,6 +2,7 @@ import os
 import math
 import random
 import pandas as pd
+from tqdm import tqdm
 from types import SimpleNamespace
 
 import torch
@@ -253,9 +254,10 @@ if __name__ == "__main__":
     tbytes_dict = {}
     tflops_per_sec_dict = {}
     tb_per_sec_dict = {}
+    pbar = tqdm(total=math.log2(args.seq_len), desc="Testing seq_lens")
     # Iterate over seq_lens
     exp_base = 1
-    iterate_max_seq_len = args.max_seq_len
+    iterate_max_seq_len = args.seq_len
     while math.exp2(exp_base) <= iterate_max_seq_len:
         args.seq_len = math.exp2(exp_base) * 1024
         # init batch_size_list
@@ -287,6 +289,8 @@ if __name__ == "__main__":
                 print(f"Error: {e}", flush=True)
                 break
         exp_base += 1
+        pbar.update(1)
+    pbar.close()
 
     # Save performance data
     save_performance_excel_file(args, latency_dict, tflops_dict, tbytes_dict, tflops_per_sec_dict, tb_per_sec_dict)
