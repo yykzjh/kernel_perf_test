@@ -258,10 +258,12 @@ if __name__ == "__main__":
     # Iterate over seq_lens
     exp_base = 1
     iterate_max_seq_len = args.seq_len
+    max_batch_size = args.batch_size
+    args.seq_len = 0
+    args.batch_size = 0
     while math.exp2(exp_base) <= iterate_max_seq_len:
         args.seq_len = int(math.exp2(exp_base) * 1024)
         # init batch_size_list
-        max_batch_size = args.batch_size
         latency_dict["Batch Size"] = list(range(1, max_batch_size + 1))
         tflops_dict["Batch Size"] = list(range(1, max_batch_size + 1))
         tbytes_dict["Batch Size"] = list(range(1, max_batch_size + 1))
@@ -287,10 +289,20 @@ if __name__ == "__main__":
                 tb_per_sec_dict[f"Seq Len {args.seq_len}"].append(tb_per_sec)
             except Exception as e:
                 print(f"Error: {e}", flush=True)
+                latency_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
+                tflops_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
+                tbytes_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
+                tflops_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
+                tb_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
                 break
         exp_base += 1
         pbar.update(1)
     pbar.close()
 
+    print(latency_dict, flush=True)
+    print(tflops_dict, flush=True)
+    print(tbytes_dict, flush=True)
+    print(tflops_per_sec_dict, flush=True)
+    print(tb_per_sec_dict, flush=True)
     # Save performance data
     save_performance_excel_file(args, latency_dict, tflops_dict, tbytes_dict, tflops_per_sec_dict, tb_per_sec_dict)
