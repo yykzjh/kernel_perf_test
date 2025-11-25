@@ -149,16 +149,21 @@ def test_main(args: SimpleNamespace):
     torch.cuda.manual_seed(42)
     testing.set_seed(42)
     # Determine the torch.dtype
-    if args.torch_dtype == "fp8":
-        args.torch_dtype = torch.float8_e4m3fn
-    elif args.torch_dtype == "fp16":
-        args.torch_dtype = torch.float16
-    elif args.torch_dtype == "fp32":
-        args.torch_dtype = torch.float32
-    elif args.torch_dtype == "bf16":
-        args.torch_dtype = torch.bfloat16
+    if isinstance(args.torch_dtype, str):
+        if args.torch_dtype == "fp8":
+            args.torch_dtype = torch.float8_e4m3fn
+        elif args.torch_dtype == "fp16":
+            args.torch_dtype = torch.float16
+        elif args.torch_dtype == "fp32":
+            args.torch_dtype = torch.float32
+        elif args.torch_dtype == "bf16":
+            args.torch_dtype = torch.bfloat16
+        else:
+            raise ValueError(f"Unsupported torch.dtype: {args.torch_dtype}")
+    elif isinstance(args.torch_dtype, torch.dtype):
+        pass
     else:
-        raise ValueError(f"Unsupported torch.dtype: {args.torch_dtype}")
+        raise ValueError(f"Unsupported type of torch.dtype: {type(args.torch_dtype)}")
     # Check num_pages
     if args.num_pages < args.batch_size * math.ceil(args.seq_len / args.page_size):
         args.num_pages = args.batch_size * math.ceil(args.seq_len / args.page_size)
