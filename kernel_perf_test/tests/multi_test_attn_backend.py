@@ -1,4 +1,5 @@
 import os
+import json
 import math
 import random
 import matplotlib.pyplot as plt
@@ -75,6 +76,17 @@ def draw_performance_chart(
     save_subdir_name = f"page_size={args.page_size}-head_dim={args.head_dim}-max_seq_len={args.max_seq_len}-num_q_heads={args.num_tp_q_heads}-num_kv_heads={args.num_tp_k_heads}-dtype={args.torch_dtype}-seq_len={args.seq_len}"
     save_subdir_path = os.path.join(args.performance_chart_dir_path, save_subdir_name)
     os.makedirs(save_subdir_path, exist_ok=True)
+
+    data_dict = {
+        "batch_size": batch_size_list,
+        "latency_us": latency_list,
+        "tflops": tflops_list,
+        "tbytes": tbytes_list,
+        "tflops_per_sec": tflops_per_sec_list,
+        "tb_per_sec": tb_per_sec_list,
+    }
+    with open(os.path.join(save_subdir_path, "performance_data.json"), "w", encoding="utf-8") as f:
+        json.dump(data_dict, f, ensure_ascii=False, indent=2)
 
     # Draw performance chart
     def plot_line(y_values, y_label, file_name):
