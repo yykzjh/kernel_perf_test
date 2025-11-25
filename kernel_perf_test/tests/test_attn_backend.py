@@ -156,7 +156,7 @@ def test_main(args: SimpleNamespace):
     FLOPs = testing.attention_flops(
         batch_size=args.batch_size,
         qo_seqlen=1,
-        kv_seqlen=args.seq_len + 1,
+        kv_seqlen=args.seq_len,
         head_dim_qk=args.head_dim,
         head_dim_vo=args.head_dim,
         num_qo_heads=args.num_tp_q_heads,
@@ -166,7 +166,7 @@ def test_main(args: SimpleNamespace):
     tflops_per_sec = testing.attention_tflops_per_sec(
         batch_size=args.batch_size,
         qo_seqlen=1,
-        kv_seqlen=args.seq_len + 1,
+        kv_seqlen=args.seq_len,
         head_dim_qk=args.head_dim,
         head_dim_vo=args.head_dim,
         num_qo_heads=args.num_tp_q_heads,
@@ -179,7 +179,7 @@ def test_main(args: SimpleNamespace):
     tb_per_sec = testing.attention_tb_per_sec(
         batch_size=args.batch_size,
         qo_seqlen=1,
-        kv_seqlen=args.seq_len + 1,
+        kv_seqlen=args.seq_len,
         head_dim_qk=args.head_dim,
         head_dim_vo=args.head_dim,
         num_qo_heads=args.num_tp_q_heads,
