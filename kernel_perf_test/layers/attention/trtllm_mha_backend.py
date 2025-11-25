@@ -74,7 +74,7 @@ class TRTLLMMHAAttnBackend(nn.Module):
             device=self.device,
         ).to(self.torch_dtype)
         # Generate bmm scales
-        self.bmm1_scale, self.bmm2_scale = 0.08838834764831845, 1.0
+        self.bmm1_scale, self.bmm2_scale = 0.1, 1.0
         # Generate workspace buffer
         self.workspace_buffer = torch.zeros((512 * 1024 * 1024,), dtype=torch.uint8, device=self.device)
         # Generate page_table
