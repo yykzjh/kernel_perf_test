@@ -3,9 +3,9 @@ name = "kernel-perf-test"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
-    "flashinfer-python==0.5.2",
+    "flashinfer-python>=0.5.2",
     "setuptools>=80.9.0",
     "sgl-kernel>=0.3.17.post1",
     "sglang>=0.5.2",
