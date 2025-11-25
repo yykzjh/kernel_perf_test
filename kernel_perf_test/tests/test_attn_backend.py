@@ -121,7 +121,7 @@ def test_main(args: SimpleNamespace):
         enable_cupti=False,
         use_cuda_graph=False,
     )
-    print(f"cuda_event measured_times={measured_times}", flush=True)
+    print(f"cuda_event measured_times={sum(measured_times) * 1e3 / len(measured_times):.2f} us", flush=True)
     measured_times = testing.bench_gpu_time(
         test_func,
         dry_run_iters=50,
@@ -134,7 +134,7 @@ def test_main(args: SimpleNamespace):
         use_cuda_graph=True,
         num_iters_within_graph=10,
     )
-    print(f"cuda_graph measured_times={measured_times}", flush=True)
+    print(f"cuda_graph measured_times={sum(measured_times) * 1e3 / len(measured_times):.2f} us", flush=True)
 
     # Profile attention backend
     attn_backend_t = utils.bench_kineto(
