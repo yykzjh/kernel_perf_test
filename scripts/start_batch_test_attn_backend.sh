@@ -18,4 +18,4 @@ export PERFORMANCE_FILE_DIR_PATH="./performance_files/"
 export SEQ_LEN=128
 export BATCH_SIZE=512
 
-python -u kernel_perf_test/tests/batch_test_attn_backend.py 2>&1 | tee batch_test_attn_backend.log &
+nohup python -u kernel_perf_test/tests/batch_test_attn_backend.py > batch_test_attn_backend.log 2>&1 &
