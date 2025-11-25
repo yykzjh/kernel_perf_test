@@ -274,22 +274,6 @@ wheels = [
 ]
 
 [[package]]
-name = "cupti-python"
-version = "13.0.0"
-source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-dependencies = [
-    { name = "cuda-bindings" },
-    { name = "numpy" },
-    { name = "nvidia-cuda-cupti" },
-]
-wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/2e/c7/2792e5a75474dc3125b7527f554386583fa31de0aad63dcaef8766a38ed6/cupti_python-13.0.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:6447a89a853a6160587034ec6d9638e62fd22335121d1c1ce2af594ecc5f814e" },
-    { url = "https://mirrors.aliyun.com/pypi/packages/97/eb/0ba97c79672add611ede7e8b3ebed5540dd19ca27f2d16bf1ffcdf6ea9e6/cupti_python-13.0.0-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:7fd5f74f386cf857b86553c7affe337ecc2aa13bd7890ae7fb3e9948628e9c5a" },
-    { url = "https://mirrors.aliyun.com/pypi/packages/80/e3/94f307f82fe83b7346e92b8e58435aa73acfbdb10c3953b2db123f1e32d1/cupti_python-13.0.0-cp313-cp313-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:1eb99da07ad462487bbff1d2990354f065eae09af82630d80b49c5451e175910" },
-    { url = "https://mirrors.aliyun.com/pypi/packages/b9/b9/392270988ec58b8b90ff62ce6088417e1e34e0ba1d6b08a73f545f029077/cupti_python-13.0.0-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:ef3b8106c1dced80fd5dee8db37e2375552b95cbc9c4d9f431133813bc4bb2df" },
-]
-
-[[package]]
 name = "decorator"
 version = "5.2.1"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
@@ -518,7 +502,6 @@ name = "kernel-perf-test"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "cupti-python" },
     { name = "flashinfer-python" },
     { name = "setuptools" },
     { name = "sgl-kernel" },
@@ -528,7 +511,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cupti-python", specifier = ">=13.0.0" },
     { name = "flashinfer-python", specifier = ">=0.5.2" },
     { name = "setuptools", specifier = ">=80.9.0" },
     { name = "sgl-kernel", specifier = ">=0.3.17.post1" },
@@ -823,16 +805,6 @@ version = "12.8.4.1"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/dc/61/e24b560ab2e2eaeb3c839129175fb330dfcfc29e5203196e5541a4c44682/nvidia_cublas_cu12-12.8.4.1-py3-none-manylinux_2_27_x86_64.whl", hash = "sha256:8ac4e771d5a348c551b2a426eda6193c19aa630236b418086020df5ba9667142" },
-]
-
-[[package]]
-name = "nvidia-cuda-cupti"
-version = "13.0.85"
-source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
-wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/2a/2a/80353b103fc20ce05ef51e928daed4b6015db4aaa9162ed0997090fe2250/nvidia_cuda_cupti-13.0.85-py3-none-manylinux_2_25_aarch64.whl", hash = "sha256:796bd679890ee55fb14a94629b698b6db54bcfd833d391d5e94017dd9d7d3151" },
-    { url = "https://mirrors.aliyun.com/pypi/packages/33/6d/737d164b4837a9bbd202f5ae3078975f0525a55730fe871d8ed4e3b952b0/nvidia_cuda_cupti-13.0.85-py3-none-manylinux_2_25_x86_64.whl", hash = "sha256:4eb01c08e859bf924d222250d2e8f8b8ff6d3db4721288cf35d14252a4d933c8" },
-    { url = "https://mirrors.aliyun.com/pypi/packages/ad/df/b74b10025c1205695c5676373f2edd3e87a7202cc62ead0dfbc373b0f6ea/nvidia_cuda_cupti-13.0.85-py3-none-win_amd64.whl", hash = "sha256:683f58d301548deeefcb8f6fac1b8d907691b9d8b18eccab417f51e362102f00" },
 ]
 
 [[package]]

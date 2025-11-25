@@ -124,18 +124,6 @@ def test_main(args: SimpleNamespace):
     print(f"cuda_event measured_times={measured_times}", flush=True)
     measured_times = testing.bench_gpu_time(
         test_func,
-        dry_run_iters=0,
-        repeat_iters=30,
-        l2_flush=True,
-        l2_flush_size_mb=256,
-        l2_flush_device="cuda",
-        sleep_after_run=False,
-        enable_cupti=True,
-        use_cuda_graph=False,
-    )
-    print(f"cupti measured_times={measured_times}", flush=True)
-    measured_times = testing.bench_gpu_time(
-        test_func,
         dry_run_iters=5,
         repeat_iters=3,
         l2_flush=True,

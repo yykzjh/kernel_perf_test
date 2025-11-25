@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "cupti-python>=13.0.0",
     "flashinfer-python>=0.5.2",
     "setuptools>=80.9.0",
     "sgl-kernel>=0.3.17.post1",
