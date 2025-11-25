@@ -4,6 +4,7 @@ import random
 from types import SimpleNamespace
 
 import torch
+from flashinfer import testing
 
 from kernel_perf_test.layers.attention import TRTLLMMHAAttnBackend
 from kernel_perf_test import utils
@@ -53,6 +54,7 @@ def test_main(args: SimpleNamespace):
     random.seed(42)
     torch.manual_seed(42)
     torch.cuda.manual_seed(42)
+    testing.set_seed(42)
     # Determine the torch.dtype
     if args.torch_dtype == "fp8":
         args.torch_dtype = torch.float8_e4m3fn
@@ -107,6 +109,45 @@ def test_main(args: SimpleNamespace):
     avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
     print(f"avg_t={avg_t * 1e6:.2f} us, min_t={min_t * 1e6:.2f} us, max_t={max_t * 1e6:.2f} us", flush=True)
 
+    # Flashinfer benchmark
+    measured_times = testing.bench_gpu_time(
+        test_func,
+        dry_run_iters=50,
+        repeat_iters=30,
+        l2_flush=True,
+        l2_flush_size_mb=256,
+        l2_flush_device="cuda",
+        sleep_after_run=False,
+        enable_cupti=False,
+        use_cuda_graph=False,
+    )
+    print(f"cuda_event measured_times={measured_times}", flush=True)
+    measured_times = testing.bench_gpu_time(
+        test_func,
+        dry_run_iters=50,
+        repeat_iters=30,
+        l2_flush=True,
+        l2_flush_size_mb=256,
+        l2_flush_device="cuda",
+        sleep_after_run=False,
+        enable_cupti=True,
+        use_cuda_graph=False,
+    )
+    print(f"cupti measured_times={measured_times}", flush=True)
+    measured_times = testing.bench_gpu_time(
+        test_func,
+        dry_run_iters=5,
+        repeat_iters=3,
+        l2_flush=True,
+        l2_flush_size_mb=256,
+        l2_flush_device="cuda",
+        sleep_after_run=False,
+        enable_cupti=False,
+        use_cuda_graph=True,
+        num_iters_within_graph=10,
+    )
+    print(f"cuda_graph measured_times={measured_times}", flush=True)
+
     # Profile attention backend
     attn_backend_t = utils.bench_kineto(
         test_func,
@@ -122,6 +163,45 @@ def test_main(args: SimpleNamespace):
         f"attn_backend_t={attn_backend_t[0] * 1e6:.2f} us",
         flush=True,
     )
+
+    # Calculate attention TFLOPS per second
+    FLOPs = testing.attention_flops(
+        batch_size=args.batch_size,
+        qo_seqlen=1,
+        kv_seqlen=args.seq_len + 1,
+        head_dim_qk=args.head_dim,
+        head_dim_vo=args.head_dim,
+        num_qo_heads=args.num_tp_q_heads,
+        causal=False,
+    )
+    print(f"FLOPs={FLOPs} Custom TFLOPS/s={FLOPs / attn_backend_t[0] / 1e12:.2f}", flush=True)
+    tflops_per_sec = testing.attention_tflops_per_sec(
+        batch_size=args.batch_size,
+        qo_seqlen=1,
+        kv_seqlen=args.seq_len + 1,
+        head_dim_qk=args.head_dim,
+        head_dim_vo=args.head_dim,
+        num_qo_heads=args.num_tp_q_heads,
+        causal=False,
+        time=attn_backend_t[0] * 1e3,
+    )
+    print(f"Flashinfer TFLOPS/s={tflops_per_sec:.2f}", flush=True)
+
+    # Calculate attention TB per second
+    tb_per_sec = testing.attention_tb_per_sec(
+        batch_size=args.batch_size,
+        qo_seqlen=1,
+        kv_seqlen=args.seq_len + 1,
+        head_dim_qk=args.head_dim,
+        head_dim_vo=args.head_dim,
+        num_qo_heads=args.num_tp_q_heads,
+        num_kv_heads=args.num_tp_k_heads,
+        time=attn_backend_t[0] * 1e3,
+        q_dtype=args.torch_dtype,
+        kv_dtype=args.torch_dtype,
+        o_dtype=args.torch_dtype,
+    )
+    print(f"Flashinfer TB/s={tb_per_sec:.2f}", flush=True)
 
 
 if __name__ == "__main__":

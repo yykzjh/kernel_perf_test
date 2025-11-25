@@ -109,18 +109,18 @@ class TRTLLMMHAAttnBackend(nn.Module):
             v_cache = self.v_cache
         kv_cache = (k_cache, v_cache)
         # Attention core
-        print(f"q shape: {q.shape}")
-        print(f"k_cache shape: {kv_cache[0].shape}")
-        print(f"v_cache shape: {kv_cache[1].shape}")
-        print(f"workspace_buffer shape: {self.workspace_buffer.shape}")
-        print(f"block_tables shape: {self.page_table.shape}")
-        print(f"seq_lens shape: {self.cache_seqlens_int32.shape}")
-        print(f"max_seq_len: {self.max_seq_len}")
-        print(f"bmm1_scale: {self.bmm1_scale}")
-        print(f"bmm2_scale: {self.bmm2_scale}")
-        print(f"window_left: {self.sliding_window_size}")
-        print(f"sinks: {None}")
-        print(f"out_dtype: {self.torch_dtype}")
+        # print(f"q shape: {q.shape}")
+        # print(f"k_cache shape: {kv_cache[0].shape}")
+        # print(f"v_cache shape: {kv_cache[1].shape}")
+        # print(f"workspace_buffer shape: {self.workspace_buffer.shape}")
+        # print(f"block_tables shape: {self.page_table.shape}")
+        # print(f"seq_lens shape: {self.cache_seqlens_int32.shape}")
+        # print(f"max_seq_len: {self.max_seq_len}")
+        # print(f"bmm1_scale: {self.bmm1_scale}")
+        # print(f"bmm2_scale: {self.bmm2_scale}")
+        # print(f"window_left: {self.sliding_window_size}")
+        # print(f"sinks: {None}")
+        # print(f"out_dtype: {self.torch_dtype}")
         o = flashinfer.decode.trtllm_batch_decode_with_kv_cache(
             query=q,
             kv_cache=kv_cache,
