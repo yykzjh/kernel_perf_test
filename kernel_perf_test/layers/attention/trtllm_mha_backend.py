@@ -74,18 +74,14 @@ class TRTLLMMHAAttnBackend(nn.Module):
             device=self.device,
         ).to(self.torch_dtype)
         # Generate bmm scales
-        self.bmm1_scale, self.bmm2_scale = 1.0, 1.0
+        self.bmm1_scale, self.bmm2_scale = 0.08838834764831845, 1.0
         # Generate workspace buffer
         self.workspace_buffer = torch.zeros((512 * 1024 * 1024,), dtype=torch.uint8, device=self.device)
         # Generate page_table
         self.page_table = torch.randperm(self.num_pages, dtype=torch.int32, device=self.device)[
-            : self.batch_size * self.seq_len // self.page_size
+            : self.batch_size * math.ceil(self.seq_len / self.page_size)
         ]
-        self.page_table = (
-            self.page_table.view(self.batch_size, self.seq_len // self.page_size)
-            .repeat_interleave(self.page_size, dim=1)
-            .contiguous()
-        )
+        self.page_table = self.page_table.view(self.batch_size, math.ceil(self.seq_len / self.page_size)).contiguous()
         # Generate cache_seqlens_int32
         self.cache_seqlens_int32 = torch.full((self.batch_size,), self.seq_len, dtype=torch.int32, device=self.device)
 
@@ -113,6 +109,18 @@ class TRTLLMMHAAttnBackend(nn.Module):
             v_cache = self.v_cache
         kv_cache = (k_cache, v_cache)
         # Attention core
+        print(f"q shape: {q.shape}")
+        print(f"k_cache shape: {kv_cache[0].shape}")
+        print(f"v_cache shape: {kv_cache[1].shape}")
+        print(f"workspace_buffer shape: {self.workspace_buffer.shape}")
+        print(f"block_tables shape: {self.page_table.shape}")
+        print(f"seq_lens shape: {self.cache_seqlens_int32.shape}")
+        print(f"max_seq_len: {self.max_seq_len}")
+        print(f"bmm1_scale: {self.bmm1_scale}")
+        print(f"bmm2_scale: {self.bmm2_scale}")
+        print(f"window_left: {self.sliding_window_size}")
+        print(f"sinks: {None}")
+        print(f"out_dtype: {self.torch_dtype}")
         o = flashinfer.decode.trtllm_batch_decode_with_kv_cache(
             query=q,
             kv_cache=kv_cache,

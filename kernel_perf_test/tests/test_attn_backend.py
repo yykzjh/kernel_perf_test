@@ -97,6 +97,7 @@ def test_main(args: SimpleNamespace):
         dtype=torch.float32,
         device=torch.device("cuda"),
     ).to(args.torch_dtype)
+    torch.cuda.synchronize()
 
     # Define test function
     def test_func():
