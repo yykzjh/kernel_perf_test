@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "flashinfer-python>=0.5.2",
+    "matplotlib>=3.10.7",
     "setuptools>=80.9.0",
     "sgl-kernel>=0.3.17.post1",
     "sglang>=0.5.2",

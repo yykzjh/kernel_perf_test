@@ -1,8 +1,10 @@
 import os
 import math
 import random
+import matplotlib.pyplot as plt
 from types import SimpleNamespace
 
+import numpy as np
 import torch
 from flashinfer import testing
 
@@ -19,7 +21,7 @@ def parse_environment_variables() -> SimpleNamespace:
     """
     # Testing configuration
     torch_cuda_profiler_dir_path = os.getenv("TORCH_CUDA_PROFILER_DIR_PATH", None)
-
+    performance_chart_dir_path = os.getenv("PERFORMANCE_CHART_DIR_PATH", "./performance_charts")
     # Attention backend configuration
     num_pages = int(os.getenv("NUM_PAGES", "0"))
     page_size = int(os.getenv("PAGE_SIZE", "1"))
@@ -35,6 +37,7 @@ def parse_environment_variables() -> SimpleNamespace:
 
     return SimpleNamespace(
         torch_cuda_profiler_dir_path=torch_cuda_profiler_dir_path,
+        performance_chart_dir_path=performance_chart_dir_path,
         num_pages=num_pages,
         page_size=page_size,
         head_dim=head_dim,
@@ -47,6 +50,96 @@ def parse_environment_variables() -> SimpleNamespace:
         sliding_window_size=sliding_window_size,
         torch_dtype=torch_dtype,
     )
+
+
+def draw_performance_chart(
+    args: SimpleNamespace,
+    batch_size_list: list,
+    latency_list: list,
+    tflops_list: list,
+    tbytes_list: list,
+    tflops_per_sec_list: list,
+    tb_per_sec_list: list,
+) -> None:
+    """
+    Draw performance chart
+    Args:
+        args: Environment variables
+        batch_size_list: List of batch sizes
+        latency_list: List of latencies
+        tflops_list: List of TFLOPS
+        tbytes_list: List of TBytes
+        tflops_per_sec_list: List of TFLOPS per second
+        tb_per_sec_list: List of TB per second
+    """
+    save_subdir_name = f"page_size={args.page_size}-head_dim={args.head_dim}-max_seq_len={args.max_seq_len}-num_q_heads={args.num_tp_q_heads}-num_kv_heads={args.num_tp_k_heads}-dtype={args.torch_dtype}-seq_len={args.seq_len}"
+    save_subdir_path = os.path.join(args.performance_chart_dir_path, save_subdir_name)
+    os.makedirs(save_subdir_path, exist_ok=True)
+
+    # Draw performance chart
+    def plot_line(y_values, y_label, file_name):
+        if not y_values:
+            return
+        plt.figure()
+        plt.plot(batch_size_list, y_values, marker="o")
+        plt.xlabel("Batch Size")
+        plt.ylabel(y_label)
+        plt.title(f"{y_label} vs Batch Size")
+        plt.grid(True, linestyle="--", alpha=0.4)
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_subdir_path, file_name))
+        plt.close()
+
+    plot_line(latency_list, "Latency (us)", "latency_vs_batch_size.png")
+    plot_line(tflops_list, "TFLOPs", "tflops_vs_batch_size.png")
+    plot_line(tbytes_list, "TBytes", "tbytes_vs_batch_size.png")
+    plot_line(tflops_per_sec_list, "TFLOPS", "tflops_per_sec_vs_batch_size.png")
+    plot_line(tb_per_sec_list, "TBS", "tb_per_sec_vs_batch_size.png")
+
+    ai_values = []
+    perf_values = []
+    colors = []
+    for batch, total_tflops, total_tbytes, perf in zip(batch_size_list, tflops_list, tbytes_list, tflops_per_sec_list):
+        if total_tbytes <= 0:
+            continue
+        ai = total_tflops / total_tbytes
+        ai_values.append(ai)
+        perf_values.append(perf)
+        colors.append(batch)
+
+    if ai_values and perf_values:
+        peak_compute = 2.5e15  # FLOPS
+        peak_bandwidth = 8e12  # B/s
+        ai_min = max(min(ai_values) * 0.5, 1e-3)
+        ai_max = max(ai_values) * 2
+        ai_axis = np.logspace(math.log10(ai_min), math.log10(ai_max), num=256)
+        mem_bound = (peak_bandwidth * ai_axis) / 1e12
+        compute_bound = np.full_like(ai_axis, peak_compute / 1e12)
+        roofline = np.minimum(mem_bound, compute_bound)
+
+        plt.figure()
+        plt.loglog(ai_axis, mem_bound, "--", label="Memory Bound (8 TB/s)")
+        plt.loglog(ai_axis, compute_bound, "-", label="Compute Bound (2500 TFLOPs/s)")
+        plt.loglog(ai_axis, roofline, label="Roofline Envelope")
+        scatter = plt.scatter(
+            ai_values,
+            perf_values,
+            c=colors,
+            cmap="viridis",
+            s=60,
+            marker="o",
+            edgecolor="black",
+            label="Measured Points",
+        )
+        plt.colorbar(scatter, label="Batch Size")
+        plt.xlabel("Arithmetic Intensity (FLOPs / Byte)")
+        plt.ylabel("Performance (TFLOPs/s)")
+        plt.title("Roofline Analysis")
+        plt.grid(True, which="both", linestyle="--", alpha=0.4)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_subdir_path, "roofline.png"))
+        plt.close()
 
 
 def test_main(args: SimpleNamespace):
@@ -107,7 +200,6 @@ def test_main(args: SimpleNamespace):
 
     # Benchmark attention backend
     avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
-    print(f"avg_t={avg_t * 1e6:.2f} us, min_t={min_t * 1e6:.2f} us, max_t={max_t * 1e6:.2f} us", flush=True)
 
     # Flashinfer benchmark
     measured_times = testing.bench_gpu_time(
@@ -121,7 +213,6 @@ def test_main(args: SimpleNamespace):
         enable_cupti=False,
         use_cuda_graph=False,
     )
-    print(f"cuda_event measured_times={sum(measured_times) * 1e3 / len(measured_times):.2f} us", flush=True)
     measured_times = testing.bench_gpu_time(
         test_func,
         dry_run_iters=50,
@@ -134,7 +225,6 @@ def test_main(args: SimpleNamespace):
         use_cuda_graph=True,
         num_iters_within_graph=10,
     )
-    print(f"cuda_graph measured_times={sum(measured_times) * 1e3 / len(measured_times):.2f} us", flush=True)
 
     # Profile attention backend
     attn_backend_t = utils.bench_kineto(
@@ -151,10 +241,6 @@ def test_main(args: SimpleNamespace):
         ),
         num_kernels_per_period=1,
     )
-    print(
-        f"attn_backend_t={attn_backend_t[0] * 1e6:.2f} us",
-        flush=True,
-    )
 
     # Calculate attention TFLOPS per second
     FLOPs = testing.attention_flops(
@@ -166,7 +252,6 @@ def test_main(args: SimpleNamespace):
         num_qo_heads=args.num_tp_q_heads,
         causal=False,
     )
-    print(f"FLOPs={FLOPs} Custom TFLOPS/s={FLOPs / attn_backend_t[0] / 1e12:.2f}", flush=True)
     tflops_per_sec = testing.attention_tflops_per_sec(
         batch_size=args.batch_size,
         qo_seqlen=1,
@@ -177,7 +262,6 @@ def test_main(args: SimpleNamespace):
         causal=False,
         time=attn_backend_t[0] * 1e3,
     )
-    print(f"Flashinfer TFLOPS/s={tflops_per_sec:.2f}", flush=True)
 
     # Calculate attention TB per second
     tb_per_sec = testing.attention_tb_per_sec(
@@ -193,11 +277,47 @@ def test_main(args: SimpleNamespace):
         kv_dtype=args.torch_dtype,
         o_dtype=args.torch_dtype,
     )
-    print(f"Flashinfer TB/s={tb_per_sec:.2f}", flush=True)
+    TBytes = tb_per_sec * attn_backend_t[0]
+
+    return attn_backend_t[0] * 1e6, FLOPs / 1e12, TBytes, tflops_per_sec, tb_per_sec
 
 
 if __name__ == "__main__":
     # Parse environment variables
     args = parse_environment_variables()
-    # Execute test
-    test_main(args)
+
+    # Performance data
+    batch_size_list = []
+    latency_list = []
+    tflops_list = []
+    tbytes_list = []
+    tflops_per_sec_list = []
+    tb_per_sec_list = []
+    # Iterate over batch sizes
+    max_batch_size = args.batch_size
+    for batch_size in range(1, max_batch_size + 1):
+        args.batch_size = batch_size
+        args.num_pages = 0
+        try:
+            # Execute test
+            latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
+            batch_size_list.append(batch_size)
+            latency_list.append(latency)
+            tflops_list.append(tflops)
+            tbytes_list.append(tbytes)
+            tflops_per_sec_list.append(tflops_per_sec)
+            tb_per_sec_list.append(tb_per_sec)
+        except Exception as e:
+            print(f"Error: {e}", flush=True)
+            break
+
+    # Draw performance chart
+    draw_performance_chart(
+        args,
+        batch_size_list,
+        latency_list,
+        tflops_list,
+        tbytes_list,
+        tflops_per_sec_list,
+        tb_per_sec_list,
+    )
