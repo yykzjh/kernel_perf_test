@@ -259,7 +259,7 @@ if __name__ == "__main__":
     exp_base = 1
     iterate_max_seq_len = args.seq_len
     while math.exp2(exp_base) <= iterate_max_seq_len:
-        args.seq_len = math.exp2(exp_base) * 1024
+        args.seq_len = int(math.exp2(exp_base) * 1024)
         # init batch_size_list
         max_batch_size = args.batch_size
         latency_dict["Batch Size"] = list(range(1, max_batch_size + 1))
