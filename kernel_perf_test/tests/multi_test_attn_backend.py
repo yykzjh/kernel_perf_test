@@ -2,10 +2,11 @@ import os
 import json
 import math
 import random
+import numpy as np
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 from types import SimpleNamespace
 
-import numpy as np
 import torch
 from flashinfer import testing
 
@@ -329,7 +330,7 @@ if __name__ == "__main__":
     tb_per_sec_list = []
     # Iterate over batch sizes
     max_batch_size = args.batch_size
-    for batch_size in range(1, max_batch_size + 1):
+    for batch_size in tqdm(range(1, max_batch_size + 1), desc="Testing batch sizes"):
         args.batch_size = batch_size
         args.num_pages = 0
         try:
