@@ -81,7 +81,13 @@ def draw_performance_chart(
         if not y_values:
             return
         plt.figure()
-        plt.plot(batch_size_list, y_values, marker="o")
+        plt.plot(
+            batch_size_list,
+            y_values,
+            marker="o",
+            markersize=4,
+            linewidth=1.2,
+        )
         plt.xlabel("Batch Size")
         plt.ylabel(y_label)
         plt.title(f"{y_label} vs Batch Size")
@@ -100,9 +106,9 @@ def draw_performance_chart(
     perf_values = []
     colors = []
     for batch, total_tflops, total_tbytes, perf in zip(batch_size_list, tflops_list, tbytes_list, tflops_per_sec_list):
-        if total_tbytes <= 0:
+        if total_tbytes <= 0 or perf <= 0:
             continue
-        ai = total_tflops / total_tbytes
+        ai = (total_tflops * 1e12) / (total_tbytes * 1e12)
         ai_values.append(ai)
         perf_values.append(perf)
         colors.append(batch)
@@ -115,20 +121,31 @@ def draw_performance_chart(
         ai_axis = np.logspace(math.log10(ai_min), math.log10(ai_max), num=256)
         mem_bound = (peak_bandwidth * ai_axis) / 1e12
         compute_bound = np.full_like(ai_axis, peak_compute / 1e12)
-        roofline = np.minimum(mem_bound, compute_bound)
 
         plt.figure()
-        plt.loglog(ai_axis, mem_bound, "--", label="Memory Bound (8 TB/s)")
-        plt.loglog(ai_axis, compute_bound, "-", label="Compute Bound (2500 TFLOPs/s)")
-        plt.loglog(ai_axis, roofline, label="Roofline Envelope")
+        plt.loglog(
+            ai_axis,
+            mem_bound,
+            "--",
+            linewidth=1.2,
+            label="Memory Bound (8 TB/s)",
+        )
+        plt.loglog(
+            ai_axis,
+            compute_bound,
+            "-",
+            linewidth=1.2,
+            label="Compute Bound (2500 TFLOPs/s)",
+        )
         scatter = plt.scatter(
             ai_values,
             perf_values,
             c=colors,
             cmap="viridis",
-            s=60,
+            s=36,
             marker="o",
             edgecolor="black",
+            linewidth=0.6,
             label="Measured Points",
         )
         plt.colorbar(scatter, label="Batch Size")
