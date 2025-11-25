@@ -15,7 +15,7 @@ export SLIDING_WINDOW_SIZE=-1
 export TORCH_DTYPE="bf16"
 export PERFORMANCE_CHART_DIR_PATH="./performance_charts/"
 
-export SEQ_LEN=2048
+export SEQ_LEN=$((2 * 1024))
 export BATCH_SIZE=256
 
 python kernel_perf_test/tests/multi_test_attn_backend.py
