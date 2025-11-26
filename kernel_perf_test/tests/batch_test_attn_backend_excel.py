@@ -5,6 +5,7 @@ import time
 import random
 import pandas as pd
 from tqdm import tqdm
+import multiprocessing as mp
 from types import SimpleNamespace
 
 import torch
@@ -99,6 +100,23 @@ def save_performance_excel_file(
         for sheet_name, data in sheets.items():
             df = dict_to_dataframe(data)
             df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+
+def _worker_process(args_dict: dict):
+    """Worker entry for subprocess execution."""
+    from types import SimpleNamespace as _SNS  # local import for spawned process
+
+    worker_args = _SNS(**args_dict)
+    return test_main(worker_args)
+
+
+def run_test_in_subprocess(args: SimpleNamespace):
+    """Run test_main inside a spawned subprocess and return its metrics."""
+    ctx = mp.get_context("spawn")
+    args_dict = vars(args).copy()
+    with ctx.Pool(processes=1) as pool:
+        result = pool.apply(_worker_process, (args_dict,))
+    return result
 
 
 def test_main(args: SimpleNamespace):
@@ -289,8 +307,8 @@ if __name__ == "__main__":
             args.batch_size = batch_size
             args.num_pages = 0
             try:
-                # Execute test
-                latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
+                # Execute test in subprocess
+                latency, tflops, tbytes, tflops_per_sec, tb_per_sec = run_test_in_subprocess(args)
                 # Synchronize and empty cache
                 torch.cuda.synchronize()
                 gc.collect()

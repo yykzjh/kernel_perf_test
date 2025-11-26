@@ -6,6 +6,7 @@ import time
 import random
 import numpy as np
 from tqdm import tqdm
+import multiprocessing as mp
 import matplotlib.pyplot as plt
 from types import SimpleNamespace
 
@@ -172,6 +173,23 @@ def draw_performance_chart(
         plt.tight_layout()
         plt.savefig(os.path.join(save_subdir_path, "roofline.png"))
         plt.close()
+
+
+def _worker_process(args_dict: dict):
+    """Worker entry for subprocess execution."""
+    from types import SimpleNamespace as _SNS  # local import for spawned process
+
+    worker_args = _SNS(**args_dict)
+    return test_main(worker_args)
+
+
+def run_test_in_subprocess(args: SimpleNamespace):
+    """Run test_main inside a spawned subprocess and return its metrics."""
+    ctx = mp.get_context("spawn")
+    args_dict = vars(args).copy()
+    with ctx.Pool(processes=1) as pool:
+        result = pool.apply(_worker_process, (args_dict,))
+    return result
 
 
 def test_main(args: SimpleNamespace):
@@ -352,7 +370,7 @@ if __name__ == "__main__":
             args.num_pages = 0
             try:
                 # Execute test
-                latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
+                latency, tflops, tbytes, tflops_per_sec, tb_per_sec = run_test_in_subprocess(args)
                 # Synchronize and empty cache
                 torch.cuda.synchronize()
                 gc.collect()
