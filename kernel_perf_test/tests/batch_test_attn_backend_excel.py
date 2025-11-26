@@ -105,6 +105,10 @@ def save_performance_excel_file(
 def _worker_process(args_dict: dict):
     """Worker entry for subprocess execution."""
     from types import SimpleNamespace as _SNS  # local import for spawned process
+    import warnings
+
+    # Ignore UserWarning
+    warnings.filterwarnings("ignore", category=UserWarning)
 
     worker_args = _SNS(**args_dict)
     return test_main(worker_args)

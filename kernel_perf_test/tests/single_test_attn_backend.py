@@ -2,6 +2,10 @@ import os
 import math
 import random
 from types import SimpleNamespace
+import warnings
+
+# Ignore UserWarning
+warnings.filterwarnings("ignore", category=UserWarning)
 
 import torch
 from flashinfer import testing
