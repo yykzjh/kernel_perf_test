@@ -160,7 +160,8 @@ def test_main(args: SimpleNamespace):
 
     # Define test function
     def test_func():
-        _ = attn_backend(q, k, v)
+        with torch.no_grad():
+            _ = attn_backend(q, k, v)
 
     # Benchmark attention backend
     avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
