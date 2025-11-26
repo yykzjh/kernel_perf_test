@@ -243,6 +243,12 @@ def test_main(args: SimpleNamespace):
     )
     TBytes = tb_per_sec * attn_backend_t[0]
 
+    # Clean up
+    del attn_backend
+    del q
+    del k
+    del v
+
     return attn_backend_t[0] * 1e6, FLOPs / 1e12, TBytes, tflops_per_sec, tb_per_sec
 
 
@@ -284,22 +290,31 @@ if __name__ == "__main__":
             try:
                 # Execute test
                 latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
+                # Synchronize and empty cache
+                torch.cuda.synchronize()
+                gc.collect()
+                time.sleep(0.1)
+                torch.cuda.empty_cache()
+                # Save performance data
                 latency_dict[f"Seq Len {args.seq_len}"].append(latency)
                 tflops_dict[f"Seq Len {args.seq_len}"].append(tflops)
                 tbytes_dict[f"Seq Len {args.seq_len}"].append(tbytes)
                 tflops_per_sec_dict[f"Seq Len {args.seq_len}"].append(tflops_per_sec)
                 tb_per_sec_dict[f"Seq Len {args.seq_len}"].append(tb_per_sec)
             except Exception as e:
+                # Fill None values
                 latency_dict[f"Seq Len {args.seq_len}"] += [None] * (iterate_max_batch_size - batch_size + 1)
                 tflops_dict[f"Seq Len {args.seq_len}"] += [None] * (iterate_max_batch_size - batch_size + 1)
                 tbytes_dict[f"Seq Len {args.seq_len}"] += [None] * (iterate_max_batch_size - batch_size + 1)
                 tflops_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (iterate_max_batch_size - batch_size + 1)
                 tb_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (iterate_max_batch_size - batch_size + 1)
+                # Synchronize and empty cache
+                torch.cuda.synchronize()
+                gc.collect()
+                time.sleep(0.1)
+                torch.cuda.empty_cache()
+                print(f"Error: {e}", flush=True)
                 break
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
-        gc.collect()
-        time.sleep(10)
         exp_base += 1
         pbar.update(1)
     pbar.close()

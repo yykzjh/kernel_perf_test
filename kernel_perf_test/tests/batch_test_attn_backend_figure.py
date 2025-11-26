@@ -316,6 +316,12 @@ def test_main(args: SimpleNamespace):
     )
     TBytes = tb_per_sec * attn_backend_t[0]
 
+    # Clean up
+    del attn_backend
+    del q
+    del k
+    del v
+
     return attn_backend_t[0] * 1e6, FLOPs / 1e12, TBytes, tflops_per_sec, tb_per_sec
 
 
@@ -346,6 +352,12 @@ if __name__ == "__main__":
             try:
                 # Execute test
                 latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
+                # Synchronize and empty cache
+                torch.cuda.synchronize()
+                gc.collect()
+                time.sleep(0.1)
+                torch.cuda.empty_cache()
+                # Save performance data
                 batch_size_list.append(batch_size)
                 latency_list.append(latency)
                 tflops_list.append(tflops)
@@ -353,6 +365,12 @@ if __name__ == "__main__":
                 tflops_per_sec_list.append(tflops_per_sec)
                 tb_per_sec_list.append(tb_per_sec)
             except Exception as e:
+                # Synchronize and empty cache
+                torch.cuda.synchronize()
+                gc.collect()
+                time.sleep(0.1)
+                torch.cuda.empty_cache()
+                print(f"Error: {e}", flush=True)
                 break
         # Draw performance chart
         draw_performance_chart(
@@ -364,10 +382,6 @@ if __name__ == "__main__":
             tflops_per_sec_list,
             tb_per_sec_list,
         )
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
-        gc.collect()
-        time.sleep(10)
         exp_base += 1
         pbar.update(1)
     pbar.close()
