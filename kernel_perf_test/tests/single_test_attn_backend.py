@@ -19,6 +19,8 @@ def parse_environment_variables() -> SimpleNamespace:
     """
     # Testing configuration
     torch_cuda_profiler_dir_path = os.getenv("TORCH_CUDA_PROFILER_DIR_PATH", None)
+    if torch_cuda_profiler_dir_path is not None and not os.path.exists(torch_cuda_profiler_dir_path):
+        os.makedirs(torch_cuda_profiler_dir_path, exist_ok=True)
 
     # Attention backend configuration
     num_pages = int(os.getenv("NUM_PAGES", "0"))
