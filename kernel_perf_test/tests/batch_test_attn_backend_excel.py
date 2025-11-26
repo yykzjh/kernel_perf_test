@@ -1,6 +1,7 @@
 import os
 import gc
 import math
+import time
 import random
 import pandas as pd
 from tqdm import tqdm
@@ -283,9 +284,6 @@ if __name__ == "__main__":
             try:
                 # Execute test
                 latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
-                torch.cuda.synchronize()
-                torch.cuda.empty_cache()
-                gc.collect()
                 latency_dict[f"Seq Len {args.seq_len}"].append(latency)
                 tflops_dict[f"Seq Len {args.seq_len}"].append(tflops)
                 tbytes_dict[f"Seq Len {args.seq_len}"].append(tbytes)
@@ -298,6 +296,10 @@ if __name__ == "__main__":
                 tflops_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (iterate_max_batch_size - batch_size + 1)
                 tb_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (iterate_max_batch_size - batch_size + 1)
                 break
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        gc.collect()
+        time.sleep(10)
         exp_base += 1
         pbar.update(1)
     pbar.close()

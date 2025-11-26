@@ -2,6 +2,7 @@ import os
 import gc
 import json
 import math
+import time
 import random
 import numpy as np
 from tqdm import tqdm
@@ -345,9 +346,6 @@ if __name__ == "__main__":
             try:
                 # Execute test
                 latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
-                torch.cuda.synchronize()
-                torch.cuda.empty_cache()
-                gc.collect()
                 batch_size_list.append(batch_size)
                 latency_list.append(latency)
                 tflops_list.append(tflops)
@@ -366,6 +364,10 @@ if __name__ == "__main__":
             tflops_per_sec_list,
             tb_per_sec_list,
         )
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        gc.collect()
+        time.sleep(10)
         exp_base += 1
         pbar.update(1)
     pbar.close()
