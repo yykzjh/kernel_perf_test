@@ -1,8 +1,10 @@
 import os
+import json
 import math
 import random
-import pandas as pd
+import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 from types import SimpleNamespace
 
 import torch
@@ -21,7 +23,7 @@ def parse_environment_variables() -> SimpleNamespace:
     """
     # Testing configuration
     torch_cuda_profiler_dir_path = os.getenv("TORCH_CUDA_PROFILER_DIR_PATH", None)
-    performance_file_dir_path = os.getenv("PERFORMANCE_FILE_DIR_PATH", "./performance_files")
+    performance_figure_dir_path = os.getenv("PERFORMANCE_FIGURE_DIR_PATH", "./performance_figures")
     # Attention backend configuration
     num_pages = int(os.getenv("NUM_PAGES", "0"))
     page_size = int(os.getenv("PAGE_SIZE", "1"))
@@ -37,7 +39,7 @@ def parse_environment_variables() -> SimpleNamespace:
 
     return SimpleNamespace(
         torch_cuda_profiler_dir_path=torch_cuda_profiler_dir_path,
-        performance_file_dir_path=performance_file_dir_path,
+        performance_figure_dir_path=performance_figure_dir_path,
         num_pages=num_pages,
         page_size=page_size,
         head_dim=head_dim,
@@ -52,51 +54,122 @@ def parse_environment_variables() -> SimpleNamespace:
     )
 
 
-def save_performance_excel_file(
+def draw_performance_chart(
     args: SimpleNamespace,
-    latency_dict: dict,
-    tflops_dict: dict,
-    tbytes_dict: dict,
-    tflops_per_sec_dict: dict,
-    tb_per_sec_dict: dict,
-):
-    """Save performance data to excel file
-
-    Args:
-        args (SimpleNamespace): Environment variables
-        latency_dict (dict): Latency data
-        tflops_dict (dict): TFLOPS data
-        tbytes_dict (dict): TBytes data
-        tflops_per_sec_dict (dict): TFLOPS per second data
-        tb_per_sec_dict (dict): TB per second data
+    batch_size_list: list,
+    latency_list: list,
+    tflops_list: list,
+    tbytes_list: list,
+    tflops_per_sec_list: list,
+    tb_per_sec_list: list,
+) -> None:
     """
-    # Create save subdir path
-    save_subdir_name = f"page_size={args.page_size}-head_dim={args.head_dim}-max_seq_len={args.max_seq_len}-num_q_heads={args.num_tp_q_heads}-num_kv_heads={args.num_tp_k_heads}-dtype={args.torch_dtype}"
-    save_subdir_path = os.path.join(args.performance_file_dir_path, save_subdir_name)
+    Draw performance chart
+    Args:
+        args: Environment variables
+        batch_size_list: List of batch sizes
+        latency_list: List of latencies
+        tflops_list: List of TFLOPS
+        tbytes_list: List of TBytes
+        tflops_per_sec_list: List of TFLOPS per second
+        tb_per_sec_list: List of TB per second
+    """
+    save_subdir_name = f"page_size={args.page_size}-head_dim={args.head_dim}-max_seq_len={args.max_seq_len}-num_q_heads={args.num_tp_q_heads}-num_kv_heads={args.num_tp_k_heads}-dtype={args.torch_dtype}-seq_len={args.seq_len}"
+    save_subdir_path = os.path.join(args.performance_figure_dir_path, save_subdir_name)
     os.makedirs(save_subdir_path, exist_ok=True)
-    save_excel_file_path = os.path.join(save_subdir_path, "trtllm_attention_backend_performance.xlsx")
-    # Save performance data
-    sheets = {
-        "latency": latency_dict,
-        "tflops": tflops_dict,
-        "tbytes": tbytes_dict,
-        "tflops_per_sec": tflops_per_sec_dict,
-        "tb_per_sec": tb_per_sec_dict,
+
+    data_dict = {
+        "batch_size": batch_size_list,
+        "latency_us": latency_list,
+        "tflops": tflops_list,
+        "tbytes": tbytes_list,
+        "tflops_per_sec": tflops_per_sec_list,
+        "tb_per_sec": tb_per_sec_list,
     }
+    with open(os.path.join(save_subdir_path, "performance_data.json"), "w", encoding="utf-8") as f:
+        json.dump(data_dict, f, ensure_ascii=False, indent=2)
 
-    def dict_to_dataframe(data: dict) -> pd.DataFrame:
-        if not data:
-            return pd.DataFrame()
-        if "Batch Size" not in data:
-            raise ValueError("Each performance dictionary must contain a 'Batch Size' key.")
-        ordered_columns = ["Batch Size"] + [col for col in data.keys() if col != "Batch Size"]
-        frame = pd.DataFrame({col: data.get(col, []) for col in ordered_columns})
-        return frame.reindex(columns=ordered_columns)
+    # Draw performance chart
+    def plot_line(y_values, y_label, file_name):
+        if not y_values:
+            return
+        plt.figure()
+        plt.plot(
+            batch_size_list,
+            y_values,
+            marker="o",
+            markersize=4,
+            linewidth=1.2,
+        )
+        plt.xlabel("Batch Size")
+        plt.ylabel(y_label)
+        plt.title(f"{y_label} vs Batch Size")
+        plt.grid(True, linestyle="--", alpha=0.4)
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_subdir_path, file_name))
+        plt.close()
 
-    with pd.ExcelWriter(save_excel_file_path, engine="openpyxl") as writer:
-        for sheet_name, data in sheets.items():
-            df = dict_to_dataframe(data)
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
+    plot_line(latency_list, "Latency (us)", "latency_vs_batch_size.png")
+    plot_line(tflops_list, "TFLOPs", "tflops_vs_batch_size.png")
+    plot_line(tbytes_list, "TBytes", "tbytes_vs_batch_size.png")
+    plot_line(tflops_per_sec_list, "TFLOPS", "tflops_per_sec_vs_batch_size.png")
+    plot_line(tb_per_sec_list, "TBS", "tb_per_sec_vs_batch_size.png")
+
+    ai_values = []
+    perf_values = []
+    colors = []
+    for batch, total_tflops, total_tbytes, perf in zip(batch_size_list, tflops_list, tbytes_list, tflops_per_sec_list):
+        if total_tbytes <= 0 or perf <= 0:
+            continue
+        ai = (total_tflops * 1e12) / (total_tbytes * 1e12)
+        ai_values.append(ai)
+        perf_values.append(perf)
+        colors.append(batch)
+
+    if ai_values and perf_values:
+        peak_compute = 2.5e15  # FLOPS
+        peak_bandwidth = 8e12  # B/s
+        ai_min = max(min(ai_values) * 0.5, 1e-3)
+        ai_max = max(ai_values) * 2
+        ai_axis = np.logspace(math.log10(ai_min), math.log10(ai_max), num=256)
+        mem_bound = (peak_bandwidth * ai_axis) / 1e12
+        compute_bound = np.full_like(ai_axis, peak_compute / 1e12)
+
+        plt.figure()
+        plt.loglog(
+            ai_axis,
+            mem_bound,
+            "--",
+            linewidth=1.2,
+            label="Memory Bound (8 TB/s)",
+        )
+        plt.loglog(
+            ai_axis,
+            compute_bound,
+            "-",
+            linewidth=1.2,
+            label="Compute Bound (2500 TFLOPs/s)",
+        )
+        scatter = plt.scatter(
+            ai_values,
+            perf_values,
+            c=colors,
+            cmap="viridis",
+            s=36,
+            marker="o",
+            edgecolor="black",
+            linewidth=0.6,
+            label="Measured Points",
+        )
+        plt.colorbar(scatter, label="Batch Size")
+        plt.xlabel("Arithmetic Intensity (FLOPs / Byte)")
+        plt.ylabel("Performance (TFLOPs/s)")
+        plt.title("Roofline Analysis")
+        plt.grid(True, which="both", linestyle="--", alpha=0.4)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_subdir_path, "roofline.png"))
+        plt.close()
 
 
 def test_main(args: SimpleNamespace):
@@ -248,61 +321,47 @@ if __name__ == "__main__":
     # Parse environment variables
     args = parse_environment_variables()
 
-    # Performance data
-    latency_dict = {}
-    tflops_dict = {}
-    tbytes_dict = {}
-    tflops_per_sec_dict = {}
-    tb_per_sec_dict = {}
     pbar = tqdm(total=math.log2(args.seq_len), desc="Testing seq_lens")
     # Iterate over seq_lens
     exp_base = 1
     iterate_max_seq_len = args.seq_len
-    max_batch_size = args.batch_size
+    iterate_max_batch_size = args.batch_size
     args.seq_len = 0
     args.batch_size = 0
     while math.exp2(exp_base) <= iterate_max_seq_len:
         args.seq_len = int(math.exp2(exp_base) * 1024)
-        # init batch_size_list
-        latency_dict["Batch Size"] = list(range(1, max_batch_size + 1))
-        tflops_dict["Batch Size"] = list(range(1, max_batch_size + 1))
-        tbytes_dict["Batch Size"] = list(range(1, max_batch_size + 1))
-        tflops_per_sec_dict["Batch Size"] = list(range(1, max_batch_size + 1))
-        tb_per_sec_dict["Batch Size"] = list(range(1, max_batch_size + 1))
-        # init current seq_len_list
-        latency_dict[f"Seq Len {args.seq_len}"] = []
-        tflops_dict[f"Seq Len {args.seq_len}"] = []
-        tbytes_dict[f"Seq Len {args.seq_len}"] = []
-        tflops_per_sec_dict[f"Seq Len {args.seq_len}"] = []
-        tb_per_sec_dict[f"Seq Len {args.seq_len}"] = []
+        # Current seq_len performance data
+        batch_size_list = []
+        latency_list = []
+        tflops_list = []
+        tbytes_list = []
+        tflops_per_sec_list = []
+        tb_per_sec_list = []
         # Iterate over batch sizes
-        for batch_size in range(1, max_batch_size + 1):
+        for batch_size in range(1, iterate_max_batch_size + 1):
             args.batch_size = batch_size
             args.num_pages = 0
             try:
                 # Execute test
                 latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
-                latency_dict[f"Seq Len {args.seq_len}"].append(latency)
-                tflops_dict[f"Seq Len {args.seq_len}"].append(tflops)
-                tbytes_dict[f"Seq Len {args.seq_len}"].append(tbytes)
-                tflops_per_sec_dict[f"Seq Len {args.seq_len}"].append(tflops_per_sec)
-                tb_per_sec_dict[f"Seq Len {args.seq_len}"].append(tb_per_sec)
+                batch_size_list.append(batch_size)
+                latency_list.append(latency)
+                tflops_list.append(tflops)
+                tbytes_list.append(tbytes)
+                tflops_per_sec_list.append(tflops_per_sec)
+                tb_per_sec_list.append(tb_per_sec)
             except Exception as e:
-                print(f"Error: {e}", flush=True)
-                latency_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
-                tflops_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
-                tbytes_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
-                tflops_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
-                tb_per_sec_dict[f"Seq Len {args.seq_len}"] += [None] * (max_batch_size - batch_size + 1)
                 break
+        # Draw performance chart
+        draw_performance_chart(
+            args,
+            batch_size_list,
+            latency_list,
+            tflops_list,
+            tbytes_list,
+            tflops_per_sec_list,
+            tb_per_sec_list,
+        )
         exp_base += 1
         pbar.update(1)
     pbar.close()
-
-    print(latency_dict, flush=True)
-    print(tflops_dict, flush=True)
-    print(tbytes_dict, flush=True)
-    print(tflops_per_sec_dict, flush=True)
-    print(tb_per_sec_dict, flush=True)
-    # Save performance data
-    save_performance_excel_file(args, latency_dict, tflops_dict, tbytes_dict, tflops_per_sec_dict, tb_per_sec_dict)
