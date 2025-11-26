@@ -1,4 +1,5 @@
 import os
+import gc
 import math
 import random
 import pandas as pd
@@ -194,7 +195,7 @@ def test_main(args: SimpleNamespace):
         kernel_names=("mha",),
         num_warmups=50,
         num_tests=30,
-        suppress_kineto_output=True,
+        suppress_kineto_output=False,
         barrier_comm_profiling=False,
         trace_path=(
             os.path.join(args.torch_cuda_profiler_dir_path, "attn_backend_trace.json")
@@ -282,6 +283,9 @@ if __name__ == "__main__":
             try:
                 # Execute test
                 latency, tflops, tbytes, tflops_per_sec, tb_per_sec = test_main(args)
+                torch.cuda.synchronize()
+                torch.cuda.empty_cache()
+                gc.collect()
                 latency_dict[f"Seq Len {args.seq_len}"].append(latency)
                 tflops_dict[f"Seq Len {args.seq_len}"].append(tflops)
                 tbytes_dict[f"Seq Len {args.seq_len}"].append(tbytes)
