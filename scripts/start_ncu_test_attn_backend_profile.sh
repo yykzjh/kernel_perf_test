@@ -42,7 +42,7 @@ while [ "${seq_len_k}" -le "${ITERATE_MAX_SEQ_LEN}" ]; do
     exit_code=$?
     if [ $exit_code -eq 0 ]; then
         # Run ncu profile
-        ncu --set full --target-processes all --export "${profile_file_path}" python kernel_perf_test/tests/ncu_test_attn_backend_profile.py
+        ncu --set full --target-processes all --export "${profile_file_path}" --kernel-name regex:".*mha.*" python kernel_perf_test/tests/ncu_test_attn_backend_profile.py
     else
         break
     fi
