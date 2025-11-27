@@ -15,7 +15,7 @@ export NUM_TP_K_HEADS=8
 export NUM_TP_V_HEADS=8
 export SLIDING_WINDOW_SIZE=-1
 export TORCH_DTYPE="bf16"
-export NCU_PROFILE_DIR_PATH="./ncu_profiles"
+export NCU_PROFILE_DIR_PATH="/root/ncu_profiles"
 
 export ITERATE_MAX_SEQ_LEN=128  # 单位：K
 export ITERATE_MAX_BATCH_SIZE=512
