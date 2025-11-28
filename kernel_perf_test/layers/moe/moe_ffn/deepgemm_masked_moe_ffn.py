@@ -24,6 +24,7 @@ class DeepGemmMaskedMoEFfn(nn.Module):
             N (int): The number of intermediate size.
             K (int): The number of hidden size.
         """
+        super().__init__()
         self.E = E
         self.N = N
         self.K = K

@@ -22,8 +22,12 @@ def parse_environment_variables() -> SimpleNamespace:
         A SimpleNamespace object containing all configuration parameters, supporting attribute access
     """
     # Testing configuration
+    performance_results_dir_path = os.getenv("PERFORMANCE_RESULTS_DIR_PATH", None)
+    if performance_results_dir_path is not None and not os.path.exists(performance_results_dir_path):
+        os.makedirs(performance_results_dir_path, exist_ok=True)
     torch_cuda_profiler_dir_path = os.getenv("TORCH_CUDA_PROFILER_DIR_PATH", None)
-    performance_results_dir_path = os.getenv("PERFORMANCE_RESULTS_DIR_PATH", "/root/performance_results")
+    if torch_cuda_profiler_dir_path is not None and not os.path.exists(torch_cuda_profiler_dir_path):
+        os.makedirs(torch_cuda_profiler_dir_path, exist_ok=True)
     # MoE FFN configuration
     iterate_max_num_local_experts = int(os.getenv("ITERATE_MAX_NUM_LOCAL_EXPERTS", "192"))
     iterate_max_expected_m = int(os.getenv("ITERATE_MAX_EXPECTED_M", "512"))
@@ -31,8 +35,8 @@ def parse_environment_variables() -> SimpleNamespace:
     moe_intermediate_size = int(os.getenv("MOE_INTERMEDIATE_SIZE", "2560"))
 
     return SimpleNamespace(
-        torch_cuda_profiler_dir_path=torch_cuda_profiler_dir_path,
         performance_results_dir_path=performance_results_dir_path,
+        torch_cuda_profiler_dir_path=torch_cuda_profiler_dir_path,
         iterate_max_num_local_experts=iterate_max_num_local_experts,
         iterate_max_expected_m=iterate_max_expected_m,
         hidden_size=hidden_size,
@@ -111,7 +115,10 @@ def test_main(args: SimpleNamespace):
         suppress_kineto_output=False,
         barrier_comm_profiling=False,
         trace_path=(
-            os.path.join(args.torch_cuda_profiler_dir_path, "deepgemm_masked_moe_ffn_trace.json")
+            os.path.join(
+                args.torch_cuda_profiler_dir_path,
+                f"deepgemm_masked_moe_ffn_trace_num_local_experts-{args.num_local_experts}_expected_m-{args.expected_m}.json",
+            )
             if args.torch_cuda_profiler_dir_path is not None
             else None
         ),
@@ -122,7 +129,7 @@ def test_main(args: SimpleNamespace):
     del masked_m
     del hidden_states_fp8
     del hidden_states_scale
-    
+
     return avg_t
 
 
