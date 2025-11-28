@@ -17,4 +17,4 @@ export SLIDING_WINDOW_SIZE=-1
 export TORCH_DTYPE="bf16"
 export TORCH_CUDA_PROFILER_DIR_PATH="./trace_files/"
 
-python kernel_perf_test/tests/single_test_attn_backend.py
+python kernel_perf_test/tests/attention/single_test_attn_backend.py

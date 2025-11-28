@@ -18,4 +18,4 @@ export PERFORMANCE_FIGURE_DIR_PATH="./performance_figures/"
 export SEQ_LEN=128  # 单位：K
 export BATCH_SIZE=512
 
-nohup python -u kernel_perf_test/tests/batch_test_attn_backend_figure.py > batch_test_attn_backend_figure.log 2>&1 &
+nohup python -u kernel_perf_test/tests/attention/batch_test_attn_backend_figure.py > batch_test_attn_backend_figure.log 2>&1 &

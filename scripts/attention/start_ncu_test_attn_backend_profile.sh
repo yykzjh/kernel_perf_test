@@ -38,11 +38,11 @@ while [ "${seq_len_k}" -le "${ITERATE_MAX_SEQ_LEN}" ]; do
     export BATCH_SIZE="${batch_size}"
     profile_file_path=$(printf "%s/seq_len-%d_batch_size-%03d.ncu-rep" "${sub_dir_path}" "${SEQ_LEN}" "${BATCH_SIZE}")
     # Try to run test
-    python kernel_perf_test/tests/ncu_test_attn_backend_profile.py
+    python kernel_perf_test/tests/attention/ncu_test_attn_backend_profile.py
     exit_code=$?
     if [ $exit_code -eq 0 ]; then
         # Run ncu profile
-        ncu --set full --target-processes all --export "${profile_file_path}" --kernel-name regex:".*mha.*" python kernel_perf_test/tests/ncu_test_attn_backend_profile.py
+        ncu --set full --target-processes all --export "${profile_file_path}" --kernel-name regex:".*mha.*" python kernel_perf_test/tests/attention/ncu_test_attn_backend_profile.py
     else
         break
     fi

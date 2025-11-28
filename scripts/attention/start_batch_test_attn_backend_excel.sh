@@ -18,4 +18,4 @@ export PERFORMANCE_FILE_DIR_PATH="./performance_files/"
 export SEQ_LEN=128  # 单位：K
 export BATCH_SIZE=512
 
-nohup python -u kernel_perf_test/tests/batch_test_attn_backend_excel.py > batch_test_attn_backend_excel.log 2>&1 &
+nohup python -u kernel_perf_test/tests/attention/batch_test_attn_backend_excel.py > batch_test_attn_backend_excel.log 2>&1 &
