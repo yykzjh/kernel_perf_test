@@ -1,12 +1,14 @@
 import os
 import gc
-import math
 import time
 import random
 import pandas as pd
 from tqdm import tqdm
-import multiprocessing as mp
 from types import SimpleNamespace
+import warnings
+
+# Ignore UserWarning
+warnings.filterwarnings("ignore", category=UserWarning)
 
 import torch
 
@@ -42,27 +44,6 @@ def parse_environment_variables() -> SimpleNamespace:
         hidden_size=hidden_size,
         moe_intermediate_size=moe_intermediate_size,
     )
-
-
-def _worker_process(args_dict: dict):
-    """Worker entry for subprocess execution."""
-    from types import SimpleNamespace as _SNS  # local import for spawned process
-    import warnings
-
-    # Ignore UserWarning
-    warnings.filterwarnings("ignore", category=UserWarning)
-
-    worker_args = _SNS(**args_dict)
-    return test_main(worker_args)
-
-
-def run_test_in_subprocess(args: SimpleNamespace):
-    """Run test_main inside a spawned subprocess and return its metrics."""
-    ctx = mp.get_context("spawn")
-    args_dict = vars(args).copy()
-    with ctx.Pool(processes=1) as pool:
-        result = pool.apply(_worker_process, (args_dict,))
-    return result
 
 
 def test_main(args: SimpleNamespace):
@@ -113,7 +94,7 @@ def test_main(args: SimpleNamespace):
         num_warmups=50,
         num_tests=30,
         suppress_kineto_output=False,
-        barrier_comm_profiling=False,
+        block_kernel_profiling=True,
         trace_path=(
             os.path.join(
                 args.torch_cuda_profiler_dir_path,
@@ -151,7 +132,7 @@ if __name__ == "__main__":
             args.expected_m = expected_m
             try:
                 # Execute test in subprocess
-                (latency,) = run_test_in_subprocess(args)
+                latency = test_main(args)
                 # Synchronize and empty cache
                 torch.cuda.synchronize()
                 gc.collect()
