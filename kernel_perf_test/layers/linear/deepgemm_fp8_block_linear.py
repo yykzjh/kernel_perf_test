@@ -20,6 +20,7 @@ class DeepGemmFp8BlockLinear(nn.Module):
             K (int): The number of hidden dim.
             block_size (List[int]): The block size for the matrix multiplication.
         """
+        super().__init__()
         self.N = N
         self.K = K
         self.block_size = block_size
