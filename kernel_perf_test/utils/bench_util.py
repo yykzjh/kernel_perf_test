@@ -85,7 +85,7 @@ def bench(fn, num_warmups: int = 50, num_tests: int = 50, post_fn=None):
 
 def bench_kineto(
     fn,
-    kernel_names: Union[str, tuple],
+    kernel_names: Optional[Union[str, tuple]] = None,
     num_warmups: int = 50,
     num_tests: int = 30,
     suppress_kineto_output: bool = False,
@@ -118,17 +118,23 @@ def bench_kineto(
                 prof.step()
 
     # Parse the profiling table
-    assert isinstance(kernel_names, str) or isinstance(kernel_names, tuple)
-    is_tuple = isinstance(kernel_names, tuple)
-    prof_lines = prof.key_averages().table(sort_by="cuda_time_total", max_name_column_width=100).split("\n")
-    kernel_names = (kernel_names,) if isinstance(kernel_names, str) else kernel_names
-    assert all([isinstance(name, str) for name in kernel_names])
-    for name in kernel_names:
-        assert sum([name in line for line in prof_lines]) == 1, f"Errors of the kernel {name} in the profiling table"
+    if kernel_names is not None:
+        assert isinstance(kernel_names, str) or isinstance(kernel_names, tuple)
+        is_tuple = isinstance(kernel_names, tuple)
+        prof_lines = prof.key_averages().table(sort_by="cuda_time_total", max_name_column_width=100).split("\n")
+        kernel_names = (kernel_names,) if isinstance(kernel_names, str) else kernel_names
+        assert all([isinstance(name, str) for name in kernel_names])
+        for name in kernel_names:
+            assert (
+                sum([name in line for line in prof_lines]) == 1
+            ), f"Errors of the kernel {name} in the profiling table"
 
     # Save chrome traces
     if trace_path is not None:
         prof.export_chrome_trace(trace_path)
+
+    if kernel_names is None:
+        return 
 
     # Return average kernel durations
     units = {"ms": 1e3, "us": 1e6}

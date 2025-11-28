@@ -5,14 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "flashinfer-python>=0.5.2",
+    "torch-memory-saver==0.0.9rc2",
+    "apache-tvm-ffi==0.1.0b15",
     "matplotlib>=3.10.7",
     "openpyxl>=3.1.5",
     "pandas>=2.3.3",
     "setuptools>=80.9.0",
-    "sgl-kernel>=0.3.17.post1",
-    "sglang>=0.5.2",
-    "torch>=2.9.1",
+    "sglang==0.5.3.post3",
+    "torch>=2.8.0",
 ]
 
 [[tool.uv.index]]
