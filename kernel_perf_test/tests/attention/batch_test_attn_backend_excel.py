@@ -24,7 +24,11 @@ def parse_environment_variables() -> SimpleNamespace:
     """
     # Testing configuration
     torch_cuda_profiler_dir_path = os.getenv("TORCH_CUDA_PROFILER_DIR_PATH", None)
-    performance_file_dir_path = os.getenv("PERFORMANCE_FILE_DIR_PATH", "./performance_files")
+    if torch_cuda_profiler_dir_path is not None and not os.path.exists(torch_cuda_profiler_dir_path):
+        os.makedirs(torch_cuda_profiler_dir_path, exist_ok=True)
+    performance_file_dir_path = os.getenv("PERFORMANCE_FILE_DIR_PATH", None)
+    if performance_file_dir_path is not None and not os.path.exists(performance_file_dir_path):
+        os.makedirs(performance_file_dir_path, exist_ok=True)
     # Attention backend configuration
     num_pages = int(os.getenv("NUM_PAGES", "0"))
     page_size = int(os.getenv("PAGE_SIZE", "1"))
@@ -53,53 +57,6 @@ def parse_environment_variables() -> SimpleNamespace:
         sliding_window_size=sliding_window_size,
         torch_dtype=torch_dtype,
     )
-
-
-def save_performance_excel_file(
-    args: SimpleNamespace,
-    latency_dict: dict,
-    tflops_dict: dict,
-    tbytes_dict: dict,
-    tflops_per_sec_dict: dict,
-    tb_per_sec_dict: dict,
-):
-    """Save performance data to excel file
-
-    Args:
-        args (SimpleNamespace): Environment variables
-        latency_dict (dict): Latency data
-        tflops_dict (dict): TFLOPS data
-        tbytes_dict (dict): TBytes data
-        tflops_per_sec_dict (dict): TFLOPS per second data
-        tb_per_sec_dict (dict): TB per second data
-    """
-    # Create save subdir path
-    save_subdir_name = f"page_size={args.page_size}-head_dim={args.head_dim}-max_seq_len={args.max_seq_len}-num_q_heads={args.num_tp_q_heads}-num_kv_heads={args.num_tp_k_heads}-dtype={args.torch_dtype}"
-    save_subdir_path = os.path.join(args.performance_file_dir_path, save_subdir_name)
-    os.makedirs(save_subdir_path, exist_ok=True)
-    save_excel_file_path = os.path.join(save_subdir_path, "trtllm_attention_backend_performance.xlsx")
-    # Save performance data
-    sheets = {
-        "latency": latency_dict,
-        "tflops": tflops_dict,
-        "tbytes": tbytes_dict,
-        "tflops_per_sec": tflops_per_sec_dict,
-        "tb_per_sec": tb_per_sec_dict,
-    }
-
-    def dict_to_dataframe(data: dict) -> pd.DataFrame:
-        if not data:
-            return pd.DataFrame()
-        if "Batch Size" not in data:
-            raise ValueError("Each performance dictionary must contain a 'Batch Size' key.")
-        ordered_columns = ["Batch Size"] + [col for col in data.keys() if col != "Batch Size"]
-        frame = pd.DataFrame({col: data.get(col, []) for col in ordered_columns})
-        return frame.reindex(columns=ordered_columns)
-
-    with pd.ExcelWriter(save_excel_file_path, engine="openpyxl") as writer:
-        for sheet_name, data in sheets.items():
-            df = dict_to_dataframe(data)
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
 
 
 def _worker_process(args_dict: dict):
@@ -348,4 +305,13 @@ if __name__ == "__main__":
     print(tflops_per_sec_dict, flush=True)
     print(tb_per_sec_dict, flush=True)
     # Save performance data
-    save_performance_excel_file(args, latency_dict, tflops_dict, tbytes_dict, tflops_per_sec_dict, tb_per_sec_dict)
+    utils.save_performance_results_to_excel(
+        save_dir_path=args.performance_file_dir_path,
+        file_name="attn_backend_performance",
+        index_key="Batch Size",
+        latency=latency_dict,
+        tflops=tflops_dict,
+        tbytes=tbytes_dict,
+        tflops_per_sec=tflops_per_sec_dict,
+        tb_per_sec=tb_per_sec_dict,
+    )

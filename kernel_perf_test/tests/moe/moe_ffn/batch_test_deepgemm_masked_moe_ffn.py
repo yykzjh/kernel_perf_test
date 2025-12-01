@@ -46,33 +46,6 @@ def parse_environment_variables() -> SimpleNamespace:
     )
 
 
-def save_performance_results(
-    args: SimpleNamespace,
-    latency_dict: dict,
-):
-    """Save performance data to results file
-
-    Args:
-        args (SimpleNamespace): Environment variables
-        latency_dict (dict): Latency data
-    """
-    # Create save subdir path
-    save_results_file_path = os.path.join(args.performance_results_dir_path, "deepgemm_masked_moe_ffn_performance.xlsx")
-
-    def dict_to_dataframe(data: dict) -> pd.DataFrame:
-        if not data:
-            return pd.DataFrame()
-        if "expected_m" not in data:
-            raise ValueError("Each performance dictionary must contain a 'expected_m' key.")
-        ordered_columns = ["expected_m"] + [col for col in data.keys() if col != "expected_m"]
-        frame = pd.DataFrame({col: data.get(col, []) for col in ordered_columns})
-        return frame.reindex(columns=ordered_columns)
-
-    with pd.ExcelWriter(save_results_file_path, engine="openpyxl") as writer:
-        df = dict_to_dataframe(latency_dict)
-        df.to_excel(writer, sheet_name="latency", index=False)
-
-
 def test_main(args: SimpleNamespace):
     # Set random seed
     random.seed(42)
@@ -180,7 +153,9 @@ if __name__ == "__main__":
                 break
     print(latency_dict, flush=True)
     # Save performance results to excel file
-    save_performance_results(
-        args=args,
-        latency_dict=latency_dict,
+    utils.save_performance_results_to_excel(
+        save_dir_path=args.performance_results_dir_path,
+        file_name="deepgemm_masked_moe_ffn_performance",
+        index_key="expected_m",
+        latency=latency_dict,
     )

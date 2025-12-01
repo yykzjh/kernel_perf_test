@@ -13,7 +13,7 @@ export NUM_TP_K_HEADS=8
 export NUM_TP_V_HEADS=8
 export SLIDING_WINDOW_SIZE=-1
 export TORCH_DTYPE="bf16"
-export PERFORMANCE_FILE_DIR_PATH="./performance_files/"
+export PERFORMANCE_FILE_DIR_PATH="/root/performance_results/"
 
 export SEQ_LEN=128  # 单位：K
 export BATCH_SIZE=512
