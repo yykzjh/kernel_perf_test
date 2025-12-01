@@ -46,6 +46,33 @@ def parse_environment_variables() -> SimpleNamespace:
     )
 
 
+def save_performance_results(
+    args: SimpleNamespace,
+    latency_dict: dict,
+):
+    """Save performance data to results file
+
+    Args:
+        args (SimpleNamespace): Environment variables
+        latency_dict (dict): Latency data
+    """
+    # Create save subdir path
+    save_results_file_path = os.path.join(args.performance_results_dir_path, "deepgemm_masked_moe_ffn_performance.xlsx")
+
+    def dict_to_dataframe(data: dict) -> pd.DataFrame:
+        if not data:
+            return pd.DataFrame()
+        if "expected_m" not in data:
+            raise ValueError("Each performance dictionary must contain a 'expected_m' key.")
+        ordered_columns = ["expected_m"] + [col for col in data.keys() if col != "expected_m"]
+        frame = pd.DataFrame({col: data.get(col, []) for col in ordered_columns})
+        return frame.reindex(columns=ordered_columns)
+
+    with pd.ExcelWriter(save_results_file_path, engine="openpyxl") as writer:
+        df = dict_to_dataframe(latency_dict)
+        df.to_excel(writer, sheet_name="latency", index=False)
+
+
 def test_main(args: SimpleNamespace):
     # Set random seed
     random.seed(42)
@@ -86,7 +113,6 @@ def test_main(args: SimpleNamespace):
 
     # Benchmark DeepGemmMaskedMoEFfn
     avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
-
     # Profile DeepGemmMaskedMoEFfn
     utils.bench_kineto(
         test_func,
@@ -153,3 +179,8 @@ if __name__ == "__main__":
                 print(f"Error: {e}", flush=True)
                 break
     print(latency_dict, flush=True)
+    # Save performance results to excel file
+    save_performance_results(
+        args=args,
+        latency_dict=latency_dict,
+    )
