@@ -60,10 +60,11 @@ def test_main(args: SimpleNamespace):
         device="cuda",
     )
 
+    graph = utils.capture_graph(lambda: replicated_linear_moe_gate(hidden_states), num_warmups=50)
+
     # Define test function
     def test_func():
-        with torch.no_grad():
-            _ = replicated_linear_moe_gate(hidden_states)
+        graph.replay()
 
     # Benchmark
     avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)

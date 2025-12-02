@@ -1,3 +1,4 @@
+from functools import partial
 import os
 import gc
 import time
@@ -77,15 +78,19 @@ def test_main(args: SimpleNamespace):
         .permute(0, 2, 1)
     )
 
+    graph = utils.capture_graph(
+        lambda: deepgemm_masked_moe_ffn(
+            hidden_states_fp8=hidden_states_fp8,
+            hidden_states_scale=hidden_states_scale,
+            masked_m=masked_m,
+            expected_m=args.expected_m,
+        ),
+        num_warmups=50,
+    )
+
     # Define test function
     def test_func():
-        with torch.no_grad():
-            _ = deepgemm_masked_moe_ffn(
-                hidden_states_fp8=hidden_states_fp8,
-                hidden_states_scale=hidden_states_scale,
-                masked_m=masked_m,
-                expected_m=args.expected_m,
-            )
+        graph.replay()
 
     # Benchmark DeepGemmMaskedMoEFfn
     avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
