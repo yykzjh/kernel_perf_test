@@ -111,10 +111,6 @@ def test_main(args: SimpleNamespace):
     def test_func():
         _ = attn_backend(q, k, v)
 
-    # Benchmark attention backend
-    avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
-    print(f"avg_t={avg_t:.2f} us, min_t={min_t:.2f} us, max_t={max_t:.2f} us", flush=True)
-
     # Flashinfer benchmark
     measured_times = testing.bench_gpu_time(
         test_func,
@@ -143,13 +139,12 @@ def test_main(args: SimpleNamespace):
     print(f"cuda_graph measured_times={sum(measured_times) * 1e3 / len(measured_times):.2f} us", flush=True)
 
     # Profile attention backend
-    attn_backend_t = utils.bench_kineto(
+    attn_backend_t, avg_t, min_t, max_t = utils.bench_kineto(
         test_func,
         kernel_names=("mha",),
         num_warmups=50,
         num_tests=30,
         suppress_kineto_output=True,
-        barrier_comm_profiling=False,
         trace_path=(
             os.path.join(args.torch_cuda_profiler_dir_path, "attn_backend_trace.json")
             if args.torch_cuda_profiler_dir_path is not None
@@ -157,6 +152,7 @@ def test_main(args: SimpleNamespace):
         ),
         num_kernels_per_period=1,
     )
+    print(f"avg_t={avg_t:.2f} us, min_t={min_t:.2f} us, max_t={max_t:.2f} us", flush=True)
     print(
         f"attn_backend_t={attn_backend_t[0] * 1e6:.2f} us",
         flush=True,

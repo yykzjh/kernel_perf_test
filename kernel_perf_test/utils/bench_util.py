@@ -89,7 +89,6 @@ def bench_kineto(
     num_warmups: int = 50,
     num_tests: int = 30,
     suppress_kineto_output: bool = False,
-    block_kernel_profiling: bool = False,
     trace_path: Optional[str] = None,
     num_kernels_per_period: int = 1,
 ):
@@ -101,21 +100,30 @@ def bench_kineto(
     for _ in range(num_warmups):
         fn()
 
+    # Add a large kernel to eliminate the CPU launch overhead
     lhs = torch.randn((8192, 8192), dtype=torch.float, device="cuda")
     rhs = torch.randn((8192, 8192), dtype=torch.float, device="cuda")
+
+    # Initialize events
+    start_events = [torch.cuda.Event(enable_timing=True) for _ in range(num_tests)]
+    end_events = [torch.cuda.Event(enable_timing=True) for _ in range(num_tests)]
 
     # Profile
     suppress = suppress_stdout_stderr if suppress_kineto_output else empty_suppress
     with suppress():
-        schedule = torch.profiler.schedule(wait=0, warmup=0, active=2, repeat=1)
+        schedule = torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1)
         with torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], schedule=schedule) as prof:
-            for i in range(2):
-                if block_kernel_profiling:
-                    lhs @ rhs
-                for _ in range(num_tests):
-                    fn()
-                torch.cuda.synchronize()
-                prof.step()
+            lhs @ rhs
+            for i in range(num_tests):
+                # Record
+                cache.zero_()
+                start_events[i].record()
+                fn()
+                end_events[i].record()
+            torch.cuda.synchronize()
+            prof.step()
+
+    times = np.array([s.elapsed_time(e) for s, e in zip(start_events, end_events)])[1:]
 
     # Parse the profiling table
     if kernel_names is not None:
@@ -134,7 +142,7 @@ def bench_kineto(
         prof.export_chrome_trace(trace_path)
 
     if kernel_names is None:
-        return
+        return np.average(times) * 1e3, np.min(times) * 1e3, np.max(times) * 1e3
 
     # Return average kernel durations
     units = {"ms": 1e3, "us": 1e6}
@@ -163,4 +171,9 @@ def bench_kineto(
             ]
 
     # Return execution durations
-    return kernel_durations if is_tuple else kernel_durations[0]
+    return (
+        (kernel_durations if is_tuple else kernel_durations[0]),
+        np.average(times) * 1e3,
+        np.min(times) * 1e3,
+        np.max(times) * 1e3,
+    )

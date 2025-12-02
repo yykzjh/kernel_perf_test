@@ -66,16 +66,13 @@ def test_main(args: SimpleNamespace):
     def test_func():
         graph.replay()
 
-    # Benchmark
-    avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
     # Profile
-    utils.bench_kineto(
+    avg_t, _, _ = utils.bench_kineto(
         test_func,
         kernel_names=None,
         num_warmups=50,
         num_tests=30,
         suppress_kineto_output=False,
-        block_kernel_profiling=True,
         trace_path=(
             os.path.join(
                 args.torch_cuda_profiler_dir_path,

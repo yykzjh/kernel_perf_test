@@ -142,9 +142,6 @@ def test_main(args: SimpleNamespace):
         with torch.no_grad():
             _ = attn_backend(q, k, v)
 
-    # Benchmark attention backend
-    avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
-
     # Flashinfer benchmark
     measured_times = testing.bench_gpu_time(
         test_func,
@@ -171,13 +168,12 @@ def test_main(args: SimpleNamespace):
     )
 
     # Profile attention backend
-    attn_backend_t = utils.bench_kineto(
+    attn_backend_t, _, _, _ = utils.bench_kineto(
         test_func,
         kernel_names=("mha",),
         num_warmups=50,
         num_tests=30,
         suppress_kineto_output=False,
-        barrier_comm_profiling=False,
         trace_path=(
             os.path.join(args.torch_cuda_profiler_dir_path, "attn_backend_trace.json")
             if args.torch_cuda_profiler_dir_path is not None
