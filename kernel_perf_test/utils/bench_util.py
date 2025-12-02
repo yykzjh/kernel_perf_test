@@ -79,8 +79,8 @@ def bench(fn, num_warmups: int = 50, num_tests: int = 50, post_fn=None):
             post_fn()
     torch.cuda.synchronize()
 
-    times = np.array([s.elapsed_time(e) / 1e3 for s, e in zip(start_events, end_events)])[1:]
-    return np.average(times), np.min(times), np.max(times)
+    times = np.array([s.elapsed_time(e) for s, e in zip(start_events, end_events)])[1:]
+    return np.average(times) * 1e3, np.min(times) * 1e3, np.max(times) * 1e3
 
 
 def bench_kineto(

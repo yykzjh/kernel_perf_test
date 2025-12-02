@@ -113,7 +113,7 @@ def test_main(args: SimpleNamespace):
 
     # Benchmark attention backend
     avg_t, min_t, max_t = utils.bench(test_func, num_warmups=50, num_tests=30)
-    print(f"avg_t={avg_t * 1e6:.2f} us, min_t={min_t * 1e6:.2f} us, max_t={max_t * 1e6:.2f} us", flush=True)
+    print(f"avg_t={avg_t:.2f} us, min_t={min_t:.2f} us, max_t={max_t:.2f} us", flush=True)
 
     # Flashinfer benchmark
     measured_times = testing.bench_gpu_time(

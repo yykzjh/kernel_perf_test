@@ -2,7 +2,6 @@ import os
 import gc
 import time
 import random
-import pandas as pd
 from tqdm import tqdm
 from types import SimpleNamespace
 import warnings
@@ -30,7 +29,7 @@ def parse_environment_variables() -> SimpleNamespace:
     torch_cuda_profiler_dir_path = os.getenv("TORCH_CUDA_PROFILER_DIR_PATH", None)
     if torch_cuda_profiler_dir_path is not None and not os.path.exists(torch_cuda_profiler_dir_path):
         os.makedirs(torch_cuda_profiler_dir_path, exist_ok=True)
-    # MoE FFN configuration
+    # Module configuration
     iterate_max_num_local_experts = int(os.getenv("ITERATE_MAX_NUM_LOCAL_EXPERTS", "192"))
     iterate_max_expected_m = int(os.getenv("ITERATE_MAX_EXPECTED_M", "512"))
     hidden_size = int(os.getenv("HIDDEN_SIZE", "6144"))
