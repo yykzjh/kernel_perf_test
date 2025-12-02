@@ -68,11 +68,15 @@ def test_main(args: SimpleNamespace):
         dtype=torch.float32,
         device="cuda",
     ).to(torch.float8_e4m3fn)
-    hidden_states_scale = torch.randn(
-        (args.num_local_experts, args.hidden_size // 128, max_m),
-        dtype=torch.float32,
-        device="cuda",
-    ).permute(0, 2, 1)
+    hidden_states_scale = (
+        torch.randn(
+            (args.num_local_experts, args.hidden_size // 512, max_m),
+            dtype=torch.float32,
+            device="cuda",
+        )
+        .to(torch.int32)
+        .permute(0, 2, 1)
+    )
 
     # Define test function
     def test_func():
