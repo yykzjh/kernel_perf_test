@@ -180,6 +180,8 @@ def parse_trace_events(
         # Calculate the duration of the kernel range
         start_kernel_events = [event for event in trace_events if kernel_range[0] in event["name"]]
         end_kernel_events = [event for event in trace_events if kernel_range[1] in event["name"]]
+        if len(end_kernel_events) == 0:
+            end_kernel_events = [event for event in trace_events if kernel_range[0] in event["name"]]
         if len(start_kernel_events) > len(end_kernel_events) and len(start_kernel_events) % len(end_kernel_events) == 0:
             start_kernel_events = start_kernel_events[:: len(start_kernel_events) // len(end_kernel_events)]
         if len(end_kernel_events) > len(start_kernel_events) and len(end_kernel_events) % len(start_kernel_events) == 0:
