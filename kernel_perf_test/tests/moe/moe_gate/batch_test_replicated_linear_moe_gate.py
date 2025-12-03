@@ -67,7 +67,7 @@ def test_main(args: SimpleNamespace):
         graph.replay()
 
     # Profile
-    replicated_linear_moe_gate_times = utils.bench_kineto(
+    replicated_linear_moe_gate_time = utils.bench_kineto(
         test_func,
         num_warmups=50,
         num_tests=30,
@@ -80,20 +80,13 @@ def test_main(args: SimpleNamespace):
             if args.torch_cuda_profiler_dir_path is not None
             else None
         ),
-        kernel_ranges=[
-            (
-                "nvjet",
-                "void cublasLt::splitKreduce_kernel",
-            )
-        ],
-        num_kernels_per_period=[1],
     )
 
     # Clean up
     del replicated_linear_moe_gate
     del hidden_states
 
-    return replicated_linear_moe_gate_times[0][0]
+    return replicated_linear_moe_gate_time
 
 
 if __name__ == "__main__":

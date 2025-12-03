@@ -93,7 +93,7 @@ def test_main(args: SimpleNamespace):
         graph.replay()
 
     # Profile DeepGemmMaskedMoEFfn
-    deepgemm_masked_moe_ffn_times = utils.bench_kineto(
+    deepgemm_masked_moe_ffn_time = utils.bench_kineto(
         test_func,
         num_warmups=50,
         num_tests=30,
@@ -106,13 +106,6 @@ def test_main(args: SimpleNamespace):
             if args.torch_cuda_profiler_dir_path is not None
             else None
         ),
-        kernel_ranges=[
-            (
-                "void (anonymous namespace)::elementwise_kernel_with_index",
-                "void deep_gemm::sm100_fp8_gemm_1d1d_impl",
-            )
-        ],
-        num_kernels_per_period=[1],
     )
 
     # Clean up
@@ -121,7 +114,7 @@ def test_main(args: SimpleNamespace):
     del hidden_states_fp8
     del hidden_states_scale
 
-    return deepgemm_masked_moe_ffn_times[0][0]
+    return deepgemm_masked_moe_ffn_time
 
 
 if __name__ == "__main__":
