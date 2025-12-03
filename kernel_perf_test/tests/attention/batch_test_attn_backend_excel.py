@@ -168,9 +168,8 @@ def test_main(args: SimpleNamespace):
     )
 
     # Profile attention backend
-    attn_backend_t, _, _, _ = utils.bench_kineto(
+    attn_backend_times = utils.bench_kineto(
         test_func,
-        kernel_names=("mha",),
         num_warmups=50,
         num_tests=30,
         suppress_kineto_output=False,
@@ -179,7 +178,13 @@ def test_main(args: SimpleNamespace):
             if args.torch_cuda_profiler_dir_path is not None
             else None
         ),
-        num_kernels_per_period=1,
+        kernel_ranges=[
+            (
+                "fmhaSm100fKernel_Qkv",
+                "fmhaSm100fKernel_Qkv",
+            )
+        ],
+        num_kernels_per_period=[1],
     )
 
     # Calculate attention TFLOPS per second
@@ -200,7 +205,7 @@ def test_main(args: SimpleNamespace):
         head_dim_vo=args.head_dim,
         num_qo_heads=args.num_tp_q_heads,
         causal=False,
-        time=attn_backend_t[0] * 1e3,
+        time=attn_backend_times[0][0] / 1e3,
     )
 
     # Calculate attention TB per second
@@ -212,12 +217,12 @@ def test_main(args: SimpleNamespace):
         head_dim_vo=args.head_dim,
         num_qo_heads=args.num_tp_q_heads,
         num_kv_heads=args.num_tp_k_heads,
-        time=attn_backend_t[0] * 1e3,
+        time=attn_backend_times[0][0] / 1e3,
         q_dtype=args.torch_dtype,
         kv_dtype=args.torch_dtype,
         o_dtype=args.torch_dtype,
     )
-    TBytes = tb_per_sec * attn_backend_t[0]
+    TBytes = tb_per_sec * attn_backend_times[0][0] / 1e6
 
     # Clean up
     del attn_backend
@@ -225,7 +230,7 @@ def test_main(args: SimpleNamespace):
     del k
     del v
 
-    return attn_backend_t[0] * 1e6, FLOPs / 1e12, TBytes, tflops_per_sec, tb_per_sec
+    return attn_backend_times[0][0], FLOPs / 1e12, TBytes, tflops_per_sec, tb_per_sec
 
 
 if __name__ == "__main__":

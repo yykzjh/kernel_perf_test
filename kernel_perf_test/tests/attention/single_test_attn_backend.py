@@ -139,9 +139,8 @@ def test_main(args: SimpleNamespace):
     print(f"cuda_graph measured_times={sum(measured_times) * 1e3 / len(measured_times):.2f} us", flush=True)
 
     # Profile attention backend
-    attn_backend_t, avg_t, min_t, max_t = utils.bench_kineto(
+    attn_backend_times = utils.bench_kineto(
         test_func,
-        kernel_names=("mha",),
         num_warmups=50,
         num_tests=30,
         suppress_kineto_output=True,
@@ -150,11 +149,16 @@ def test_main(args: SimpleNamespace):
             if args.torch_cuda_profiler_dir_path is not None
             else None
         ),
-        num_kernels_per_period=1,
+        kernel_ranges=[
+            (
+                "fmhaSm100fKernel_Qkv",
+                "fmhaSm100fKernel_Qkv",
+            )
+        ],
+        num_kernels_per_period=[1],
     )
-    print(f"avg_t={avg_t:.2f} us, min_t={min_t:.2f} us, max_t={max_t:.2f} us", flush=True)
     print(
-        f"attn_backend_t={attn_backend_t[0] * 1e6:.2f} us",
+        f"attn_backend_t={attn_backend_times[0][0] / 1e3:.2f} ms",
         flush=True,
     )
 
@@ -168,7 +172,7 @@ def test_main(args: SimpleNamespace):
         num_qo_heads=args.num_tp_q_heads,
         causal=False,
     )
-    print(f"FLOPs={FLOPs} Custom TFLOPS/s={FLOPs / attn_backend_t[0] / 1e12:.2f}", flush=True)
+    print(f"FLOPs={FLOPs} Custom TFLOPS/s={FLOPs / attn_backend_times[0][0] / 1e6:.2f}", flush=True)
     tflops_per_sec = testing.attention_tflops_per_sec(
         batch_size=args.batch_size,
         qo_seqlen=1,
@@ -177,7 +181,7 @@ def test_main(args: SimpleNamespace):
         head_dim_vo=args.head_dim,
         num_qo_heads=args.num_tp_q_heads,
         causal=False,
-        time=attn_backend_t[0] * 1e3,
+        time=attn_backend_times[0][0] / 1e3,
     )
     print(f"Flashinfer TFLOPS/s={tflops_per_sec:.2f}", flush=True)
 
@@ -190,7 +194,7 @@ def test_main(args: SimpleNamespace):
         head_dim_vo=args.head_dim,
         num_qo_heads=args.num_tp_q_heads,
         num_kv_heads=args.num_tp_k_heads,
-        time=attn_backend_t[0] * 1e3,
+        time=attn_backend_times[0][0] / 1e3,
         q_dtype=args.torch_dtype,
         kv_dtype=args.torch_dtype,
         o_dtype=args.torch_dtype,
