@@ -4,7 +4,7 @@ import json
 import tempfile
 import numpy as np
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 
@@ -90,6 +90,7 @@ def bench_kineto(
     num_tests: int = 30,
     suppress_kineto_output: bool = False,
     trace_path: Optional[str] = None,
+    position_shift: Tuple[int, int] = (1, 1),
 ):
     # Flush L2 cache with 256 MB data
     torch.cuda.synchronize()
@@ -125,7 +126,7 @@ def bench_kineto(
         temp_file.close()
         prof.export_chrome_trace(trace_path_to_use)
     # Parse the trace events
-    kernel_range_time = parse_trace_events(trace_path=trace_path_to_use)
+    kernel_range_time = parse_trace_events(trace_path=trace_path_to_use, position_shift=position_shift)
     # Clean up the temporary trace file
     if trace_path is None:
         os.remove(trace_path_to_use)
@@ -134,7 +135,7 @@ def bench_kineto(
     return kernel_range_time
 
 
-def parse_trace_events(trace_path: str) -> float:
+def parse_trace_events(trace_path: str, position_shift: Tuple[int, int] = (1, 1)) -> float:
     seperated_kernel_name = "void at::native::vectorized_elementwise_kernel<4, at::native::FillFunctor<int>, std::array<char*, 1ul> >(int, at::native::FillFunctor<int>, std::array<char*, 1ul>)"
     # Load the trace events
     profile_data = json.loads(Path(trace_path).read_text())
@@ -151,8 +152,12 @@ def parse_trace_events(trace_path: str) -> float:
     # Find seperated kernel indices
     seperated_kernel_indices = [i for i, event in enumerate(trace_events) if (seperated_kernel_name in event["name"])]
     # Calculate the duration of the kernel range
-    start_kernel_event_indices = [seperated_kernel_indices[i] + 1 for i in range(0, len(seperated_kernel_indices) - 1)]
-    end_kernel_event_indices = [seperated_kernel_indices[i] - 1 for i in range(1, len(seperated_kernel_indices))]
+    start_kernel_event_indices = [
+        seperated_kernel_indices[i] + position_shift[0] for i in range(0, len(seperated_kernel_indices) - 1)
+    ]
+    end_kernel_event_indices = [
+        seperated_kernel_indices[i] - position_shift[1] for i in range(1, len(seperated_kernel_indices))
+    ]
     kernel_range_durations = [
         trace_events[end_kernel_event_indices[i]]["ts"]
         + trace_events[end_kernel_event_indices[i]]["dur"]

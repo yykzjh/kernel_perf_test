@@ -78,6 +78,7 @@ def test_main(args: SimpleNamespace):
             if args.torch_cuda_profiler_dir_path is not None
             else None
         ),
+        position_shift=(3, 1),
     )
 
     # Clean up
