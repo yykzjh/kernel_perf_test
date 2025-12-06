@@ -60,12 +60,25 @@ def _worker_process(args_dict: dict):
     """Worker entry for subprocess execution."""
     from types import SimpleNamespace as _SNS  # local import for spawned process
     import warnings
+    import traceback
+    import sys
 
     # Ignore UserWarning
     warnings.filterwarnings("ignore", category=UserWarning)
 
-    worker_args = _SNS(**args_dict)
-    return test_main(worker_args)
+    try:
+        worker_args = _SNS(**args_dict)
+        return test_main(worker_args)
+    except Exception as e:
+        # 打印完整的错误堆栈，然后返回可序列化的错误信息
+        print("=" * 80, file=sys.stderr)
+        print("ERROR in worker process:", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
+        # 返回可序列化的错误信息字符串
+        error_msg = f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+        raise RuntimeError(error_msg)
 
 
 def run_test_in_subprocess(args: SimpleNamespace):
@@ -83,6 +96,8 @@ def test_main(args: SimpleNamespace):
     torch.manual_seed(42)
     torch.cuda.manual_seed(42)
     testing.set_seed(42)
+    # Set default device
+    torch.set_default_device("cuda")
     # Initialize Qwen3MoeAttentionLayer
     qwen3_moe_attention_layer = Qwen3MoeAttentionLayer(
         seq_len=args.seq_len,
@@ -147,13 +162,13 @@ if __name__ == "__main__":
             try:
                 # Execute test in subprocess
                 latency_us = run_test_in_subprocess(args)
+                # Save performance data
+                latency_dict[f"seq_len: {args.seq_len} / us"].append(latency_us)
                 # Synchronize and empty cache
                 torch.cuda.synchronize()
                 gc.collect()
                 time.sleep(0.1)
                 torch.cuda.empty_cache()
-                # Save performance data
-                latency_dict[f"seq_len: {args.seq_len} / us"].append(latency_us)
             except Exception as e:
                 # Fill None values
                 latency_dict[f"seq_len: {args.seq_len} / us"] += [None] * (args.iterate_max_batch_size - batch_size + 1)

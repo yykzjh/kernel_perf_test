@@ -1,0 +1,1 @@
+pgrep -f 'python -u kernel_perf_test/tests/attention/batch_test_qwen3_moe_attention_layer.py' | xargs kill

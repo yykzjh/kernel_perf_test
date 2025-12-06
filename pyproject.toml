@@ -13,6 +13,7 @@ dependencies = [
     "setuptools>=80.9.0",
     "sglang==0.5.3.post3",
     "torch>=2.8.0",
+    "dowhen>=0.1.0",
 ]
 
 [[tool.uv.index]]

@@ -1,8 +1,8 @@
 import math
+from dowhen import when, do
 
 import torch
 import torch.nn as nn
-
 
 from sglang.srt.models.qwen3_moe import Qwen3MoeAttention
 from sglang.srt.layers.quantization.fp8 import Fp8Config
@@ -12,6 +12,26 @@ from sglang.srt.model_executor.forward_batch_info import ForwardBatch, ForwardMo
 from sglang.srt.mem_cache.memory_pool import ReqToTokenPool, MHATokenToKVPool
 
 from kernel_perf_test.layers.attention.trtllm_mha_backend_mock import TRTLLMMHAAttnBackendMock
+
+
+def mock_distributed_environment():
+    from sglang.srt.layers.dp_attention import get_attention_tp_rank, get_attention_tp_size
+    from sglang.srt.layers.quantization.fp8 import Fp8LinearMethod
+    from sglang.srt.layers.linear import RowParallelLinear
+
+    do("global _ATTN_TP_RANK; _ATTN_TP_RANK = 0").when(get_attention_tp_rank, "assert _ATTN_TP_RANK is not None").goto(
+        "return _ATTN_TP_RANK"
+    )
+    do("global _ATTN_TP_SIZE; _ATTN_TP_SIZE = 1").when(get_attention_tp_size, "assert _ATTN_TP_SIZE is not None").goto(
+        "return _ATTN_TP_SIZE"
+    )
+    do("self.tp_rank = 0").when(Qwen3MoeAttention, "self.tp_rank = get_tensor_model_parallel_rank()").goto(
+        "self.qkv_proj = QKVParallelLinear"
+    )
+    do("tp_size = 4").when(Fp8LinearMethod.create_weights, "tp_size = get_tensor_model_parallel_world_size()").goto(245)
+    do("output_parallel = self.quant_method.apply(self, input_parallel, bias=bias_)").when(
+        RowParallelLinear.forward, "with use_symmetric_memory(parallel_state.get_tp_group()) as sm:"
+    ).goto("if self.reduce_results and self.tp_size > 1 and not skip_all_reduce:")
 
 
 class Qwen3MoeAttentionLayer(nn.Module):
@@ -82,7 +102,8 @@ class Qwen3MoeAttentionLayer(nn.Module):
             "dual_chunk_attention_config": None,
             "alt_stream": torch.cuda.Stream(self.device),
         }
-        # Initialize Qwen3MoeAttention
+        # Mock distributed environment
+        mock_distributed_environment()
         self.qwen3_moe_attention = Qwen3MoeAttention(**self.qwen3_moe_attention_init_params)
         # Initialize positions
         self.positions = torch.zeros((self.batch_size,), device=self.device, dtype=torch.int64)

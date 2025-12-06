@@ -88,29 +88,19 @@ class TRTLLMMHAAttnBackendMock(nn.Module):
         """Run forward for decode using TRTLLM MHA kernel."""
         cache_loc = forward_batch.out_cache_loc
         if save_kv_cache and k is not None:
-            forward_batch.token_to_kv_pool.set_kv_buffer(
-                layer, cache_loc, k, v, layer.k_scale, layer.v_scale
-            )
+            forward_batch.token_to_kv_pool.set_kv_buffer(layer, cache_loc, k, v, layer.k_scale, layer.v_scale)
 
         q = q.contiguous().view(-1, layer.tp_q_head_num, layer.head_dim)
         k_cache, v_cache = forward_batch.token_to_kv_pool.get_kv_buffer(layer.layer_id)
         # shape conversion:
         # [num_pages, page_size, num_kv_heads, head_dim] -> [num_pages, num_kv_heads, page_size, head_dim]
-        k_cache = k_cache.view(
-            -1, self.page_size, layer.tp_k_head_num, layer.head_dim
-        ).permute(0, 2, 1, 3)
-        v_cache = v_cache.view(
-            -1, self.page_size, layer.tp_v_head_num, layer.head_dim
-        ).permute(0, 2, 1, 3)
+        k_cache = k_cache.view(-1, self.page_size, layer.tp_k_head_num, layer.head_dim).permute(0, 2, 1, 3)
+        v_cache = v_cache.view(-1, self.page_size, layer.tp_v_head_num, layer.head_dim).permute(0, 2, 1, 3)
         kv_cache = (k_cache, v_cache)
 
         # TODO: add support for quantization
         q_scale = 1.0
-        k_scale = (
-            layer.k_scale_float
-            if getattr(layer, "k_scale_float", None) is not None
-            else 1.0
-        )
+        k_scale = layer.k_scale_float if getattr(layer, "k_scale_float", None) is not None else 1.0
         bmm1_scale = q_scale * k_scale * layer.scaling
         bmm2_scale = 1.0
         # sink: additional value per head in the denominator of the softmax.
@@ -130,6 +120,7 @@ class TRTLLMMHAAttnBackendMock(nn.Module):
             window_left=self.sliding_window_size,
             # TODO: add attention_sink operation or nvfp4 scale factor if needed
             sinks=attention_sink,
+            out_dtype=q.dtype,
         )
 
         return o.view(-1, layer.tp_q_head_num * layer.head_dim)
