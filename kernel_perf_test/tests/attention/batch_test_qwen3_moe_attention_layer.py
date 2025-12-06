@@ -114,7 +114,7 @@ def test_main(args: SimpleNamespace):
     # Capture graph
     graph = utils.capture_graph(
         lambda: qwen3_moe_attention_layer(),
-        num_warmups=50,
+        num_warmups=2,
     )
 
     # Define test function
@@ -124,8 +124,8 @@ def test_main(args: SimpleNamespace):
     # Profile
     qwen3_moe_attention_layer_time = utils.bench_kineto(
         test_func,
-        num_warmups=50,
-        num_tests=30,
+        num_warmups=2,
+        num_tests=10,
         suppress_kineto_output=False,
         trace_path=(
             os.path.join(
@@ -148,11 +148,17 @@ if __name__ == "__main__":
     # Parse environment variables
     args = parse_environment_variables()
 
+    # tqdm setting
+    pbar = tqdm(
+        total=args.iterate_max_seq_len * args.iterate_max_batch_size,
+        desc="Testing different seq_lens and batch sizes of Qwen3MoeAttentionLayer",
+    )
+
     # Performance data
     latency_dict = {}
     # Iterate over seq_lens
     latency_dict["batch_size"] = list(range(1, args.iterate_max_batch_size + 1))
-    for seq_len in tqdm(range(1, args.iterate_max_seq_len + 1), desc="Testing seq_lens"):
+    for seq_len in range(1, args.iterate_max_seq_len + 1):
         args.seq_len = seq_len * 1024
         latency_dict[f"seq_len: {args.seq_len} / us"] = []
         # Iterate over batch sizes
@@ -169,6 +175,7 @@ if __name__ == "__main__":
                 gc.collect()
                 time.sleep(0.1)
                 torch.cuda.empty_cache()
+                pbar.update(1)
             except Exception as e:
                 # Fill None values
                 latency_dict[f"seq_len: {args.seq_len} / us"] += [None] * (args.iterate_max_batch_size - batch_size + 1)
@@ -178,7 +185,9 @@ if __name__ == "__main__":
                 time.sleep(0.1)
                 torch.cuda.empty_cache()
                 print(f"Error: {e}", flush=True)
+                pbar.update(args.iterate_max_batch_size - batch_size + 1)
                 break
+    pbar.close()
     print(latency_dict, flush=True)
     # Save performance results to excel file
     utils.save_performance_results_to_excel(
