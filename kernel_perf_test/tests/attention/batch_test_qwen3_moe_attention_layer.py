@@ -150,16 +150,17 @@ if __name__ == "__main__":
 
     # tqdm setting
     pbar = tqdm(
-        total=args.iterate_max_seq_len * args.iterate_max_batch_size,
+        total=math.log2(args.iterate_max_seq_len) * args.iterate_max_batch_size,
         desc="Testing different seq_lens and batch sizes of Qwen3MoeAttentionLayer",
     )
 
     # Performance data
     latency_dict = {}
     # Iterate over seq_lens
+    exp_base = 1
     latency_dict["batch_size"] = list(range(1, args.iterate_max_batch_size + 1))
-    for seq_len in range(1, args.iterate_max_seq_len + 1):
-        args.seq_len = seq_len * 1024
+    while math.exp2(exp_base) <= args.iterate_max_seq_len:
+        args.seq_len = int(math.exp2(exp_base) * 1024)
         latency_dict[f"seq_len: {args.seq_len} / us"] = []
         # Iterate over batch sizes
         for batch_size in range(1, args.iterate_max_batch_size + 1):
@@ -187,6 +188,7 @@ if __name__ == "__main__":
                 print(f"Error: {e}", flush=True)
                 pbar.update(args.iterate_max_batch_size - batch_size + 1)
                 break
+        exp_base += 1
     pbar.close()
     print(latency_dict, flush=True)
     # Save performance results to excel file
