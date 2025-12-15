@@ -6,9 +6,9 @@ import torch.nn as nn
 from sglang.srt.layers.quantization import deep_gemm_wrapper
 
 
-class DeepGEMMGroupedGemm(nn.Module):
+class DeepGEMMMaskedGemm(nn.Module):
     """
-    DeepGEMMGroupedGemm is a class that implements the grouped gemm layer using the DeepGemm library.
+    DeepGEMMMaskedGemm is a class that implements the masked gemm layer using the DeepGemm library.
     """
 
     def __init__(
@@ -19,7 +19,7 @@ class DeepGEMMGroupedGemm(nn.Module):
         K: int,
     ):
         """
-        Initialize the DeepGEMMGroupedGemm layer.
+        Initialize the DeepGEMMMaskedGemm layer.
 
         Args:
             num_local_experts (int): The number of local experts (num_groups).
@@ -67,7 +67,7 @@ class DeepGEMMGroupedGemm(nn.Module):
         )
 
     def forward(self):
-        """Forward pass of the DeepGEMMGroupedGemm layer."""
+        """Forward pass of the DeepGEMMMaskedGemm layer."""
         deep_gemm_wrapper.grouped_gemm_nt_f8f8bf16_masked(
             (self.input_fp8, self.input_scale),
             (self.weight_fp8, self.weight_scale),

@@ -12,7 +12,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 import torch
 
 from kernel_perf_test import utils
-from kernel_perf_test.layers.moe.moe_ffn.deepgemm_grouped_gemm import DeepGEMMGroupedGemm
+from kernel_perf_test.layers.moe.moe_ffn.deepgemm_masked_gemm import DeepGEMMMaskedGemm
 
 
 def parse_environment_variables() -> SimpleNamespace:
@@ -51,7 +51,7 @@ def test_main(args: SimpleNamespace):
     torch.manual_seed(42)
     torch.cuda.manual_seed(42)
     # Initialize testing module
-    deepgemm_grouped_gemm = DeepGEMMGroupedGemm(
+    deepgemm_masked_gemm = DeepGEMMMaskedGemm(
         num_local_experts=args.num_local_experts,
         expected_m=args.expected_m,
         N=args.moe_intermediate_size * 2,
@@ -59,7 +59,7 @@ def test_main(args: SimpleNamespace):
     )
 
     graph = utils.capture_graph(
-        lambda: deepgemm_grouped_gemm(),
+        lambda: deepgemm_masked_gemm(),
         num_warmups=5,
     )
 
@@ -68,7 +68,7 @@ def test_main(args: SimpleNamespace):
         graph.replay()
 
     # Profile testing module
-    deepgemm_grouped_gemm_time = utils.bench_kineto(
+    deepgemm_masked_gemm_time = utils.bench_kineto(
         test_func,
         num_warmups=5,
         num_tests=10,
@@ -84,9 +84,9 @@ def test_main(args: SimpleNamespace):
     )
 
     # Clean up
-    del deepgemm_grouped_gemm
+    del deepgemm_masked_gemm
 
-    return deepgemm_grouped_gemm_time
+    return deepgemm_masked_gemm_time
 
 
 if __name__ == "__main__":
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     # Save performance results to excel file
     utils.save_performance_results_to_excel(
         save_dir_path=args.performance_results_dir_path,
-        file_name="deepgemm_grouped_gemm_performance",
+        file_name="deepgemm_masked_gemm_performance",
         index_key="expected_m",
         latency=latency_dict,
     )
