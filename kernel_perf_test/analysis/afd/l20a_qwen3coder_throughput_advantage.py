@@ -1048,19 +1048,19 @@ def analyze_l20a_qwen3coder_throughput_advantage(
     slo_tpot_us: int = 40000,
     performance_results_dir_path: str = r"./test_data",
     l20a_qwen3coder_throughput_advantage_analysis_result_dir_path: str = r"./l20a_qwen3coder_throughput_advantage_analysis_result",
-) -> None:
-    """Analyze the throughput advantage of L20A
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Analyse the throughput advantage of L20A
 
     Args:
-        seq_len (int): Sequence length
-        num_gpus (int): Number of GPUs
+        seq_len (int): Sequence length.
+        num_gpus (int): Number of GPUs.
         slo_tpot_us (int, optional): Time per output token in microseconds. Defaults to 40000.
         performance_results_dir_path (str, optional): Path to the performance results directory. Defaults to r"./test_data".
         l20a_qwen3coder_throughput_advantage_analysis_result_dir_path (str, optional): Path to the l20a qwen3coder throughput advantage analysis result directory. Defaults to r"./l20a_qwen3coder_throughput_advantage_analysis_result".
 
+    Returns:
+        Tuple[pd.DataFrame, pd.DataFrame]: Tuple containing the filtered reference statistics DataFrame and the filtered AFD best statistics DataFrame.
     """
-    # Calculate the time per layer
-    time_us_per_layer = slo_tpot_us / NUM_LAYERS
     # Check if the sequence length is valid
     if seq_len not in VALID_SEQ_LENS:
         raise ValueError(f"Invalid sequence length: {seq_len}. Valid sequence lengths are: {VALID_SEQ_LENS}")
@@ -1084,7 +1084,7 @@ def analyze_l20a_qwen3coder_throughput_advantage(
         print(f"Performance results: {performance_results}")
     except Exception as e:
         print(f"Error loading performance results: {e}")
-        return
+        return None
 
     # Analyze reference mode
     reference_statistics_df = calculate_reference_statistics(
