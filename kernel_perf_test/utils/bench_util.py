@@ -105,15 +105,16 @@ def bench_kineto(
     # Profile
     suppress = suppress_stdout_stderr if suppress_kineto_output else empty_suppress
     with suppress():
-        schedule = torch.profiler.schedule(wait=0, warmup=0, active=1, repeat=1)
+        schedule = torch.profiler.schedule(wait=0, warmup=1, active=1, repeat=1)
         with torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA], schedule=schedule) as prof:
             lhs @ rhs
-            for i in range(num_tests):
-                # Record
-                cache.zero_()
-                fn()
+            for _ in range(2):
+                for _ in range(num_tests):
+                    # Record
+                    cache.zero_()
+                    fn()
+                prof.step()
             torch.cuda.synchronize()
-            prof.step()
     # Save chrome traces
     if trace_path is not None:
         prof.export_chrome_trace(trace_path)
