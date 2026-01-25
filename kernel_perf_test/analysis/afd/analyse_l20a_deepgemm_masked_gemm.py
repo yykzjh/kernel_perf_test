@@ -5,22 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from kernel_perf_test import utils
-
-
-def calculate_deepgemm_masked_gemm_tflops(E: int, M: int, N: int, K: int, latency_us: float) -> float:
-    """Calculate the TFLOPS of DeepGEMM Masked Gemm
-
-    Args:
-        E (int): The number of local experts (num_groups).
-        M (int): The number of masked elements.
-        N (int): The number of output size.
-        K (int): The number of input size.
-        latency_us (float): The latency in microseconds.
-
-    Returns:
-        float: The TFLOPS.
-    """
-    return (2 * E * M * N * K) / (latency_us * 1e6)
+from kernel_perf_test.analysis.utils import calculate_deepgemm_masked_gemm_tflops
 
 
 def plot_tflops_vs_expected_m(
